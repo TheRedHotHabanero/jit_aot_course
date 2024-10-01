@@ -61,7 +61,7 @@ class FactorialGraphTest : public ::testing::Test {
         instructionBuilder.PushBackInst(
             bbLoopBody,
             instructionBuilder.BuildMul(instType, vdest, vdest,
-                                        vregN)); // result *= counter
+                                        vregN.GetRegValue())); // result *= counter
 
         // Increment counter
         instructionBuilder.PushBackInst(

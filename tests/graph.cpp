@@ -24,7 +24,7 @@ TEST_F(GraphTest, TestGraph1) {
     auto vdest = VReg(0);
     auto vreg1 = VReg(1);
     auto vreg2 = VReg(2);
-    auto *mul = instrBuilder.BuildMul(instType, vdest, vreg1, vreg2);
+    auto *mul = instrBuilder.BuildMul(instType, vdest, vreg1, vreg2.GetRegValue());
 
     // Add a single instruction in the 1st basic block
     auto *bb = irGenerator.CreateEmptyBB();
@@ -76,7 +76,7 @@ TEST_F(GraphTest, TestGraph2) {
     auto vdest = VReg(0);
     auto vreg1 = VReg(1);
     auto vreg2 = VReg(2);
-    auto *mul = instrBuilder.BuildMul(instType, vdest, vreg1, vreg2);
+    auto *mul = instrBuilder.BuildMul(instType, vdest, vreg1, vreg2.GetRegValue());
     auto *addi1 = instrBuilder.BuildAddi(instType, vreg1, vreg1, 32);
     auto *addi2 = instrBuilder.BuildAddi(instType, vreg2, vreg2, 32);
 

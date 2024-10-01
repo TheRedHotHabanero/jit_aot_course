@@ -30,7 +30,7 @@ TEST_F(BBTest, TestBB1) {
     auto vdest = VReg(0);
     auto vreg1 = VReg(1);
     auto vreg2 = VReg(2);
-    auto *mul = instructionBuilder.BuildMul(instType, vdest, vreg1, vreg2);
+    auto *mul = instructionBuilder.BuildMul(instType, vdest, vreg1, vreg2.GetRegValue());
 
     // Add 1st instruction
     bb->PushInstBackward(mul);
@@ -62,7 +62,7 @@ TEST_F(BBTest, TestBB2) {
     auto vdest = VReg(0);
     auto vreg1 = VReg(1);
     auto vreg2 = VReg(2);
-    auto *mul = instructionBuilder.BuildMul(instType, vdest, vreg1, vreg2);
+    auto *mul = instructionBuilder.BuildMul(instType, vdest, vreg1, vreg2.GetRegValue());
     auto *addi1 = instructionBuilder.BuildAddi(instType, vreg1, vreg1, 32);
     auto *addi2 = instructionBuilder.BuildAddi(instType, vreg2, vreg2, 32);
 
@@ -83,7 +83,7 @@ TEST_F(BBTest, TestBB3) {
     auto vdest = VReg(0);
     auto vreg1 = VReg(1);
     auto vreg2 = VReg(2);
-    auto *mul = instructionBuilder.BuildMul(instType, vdest, vreg1, vreg2);
+    auto *mul = instructionBuilder.BuildMul(instType, vdest, vreg1, vreg2.GetRegValue());
     auto *addi1 = instructionBuilder.BuildAddi(instType, vreg1, vreg1, 32);
     auto *addi2 = instructionBuilder.BuildAddi(instType, vreg2, vreg2, 32);
 

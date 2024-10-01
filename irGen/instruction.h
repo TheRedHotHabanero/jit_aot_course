@@ -92,6 +92,7 @@ class SingleInstruction {
     VReg vreg_;
     VReg vreg1_;
     VReg vreg2_;
+    Conditions condition_;
 
   public:
     // getters
@@ -104,6 +105,7 @@ class SingleInstruction {
     VReg GetVirtualReg() { return vreg_; }
     VReg GetVirtualReg1() { return vreg1_; }
     VReg GetVirtualReg2() { return vreg2_; }
+    Conditions GetCondCode() { return condition_;}
 
   public:
     // setters
@@ -117,6 +119,7 @@ class SingleInstruction {
     void SetVirtualReg(VReg vreg) { vreg_ = vreg; }
     void SetVirtualReg1(VReg vreg) { vreg1_ = vreg; }
     void SetVirtualReg2(VReg vreg) { vreg2_ = vreg; }
+    void SetCondCode(Conditions condition) {condition_ = condition; }
     void PrintSSA();
 };
 
