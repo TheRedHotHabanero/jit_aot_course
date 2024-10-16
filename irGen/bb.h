@@ -74,7 +74,7 @@ class BB {
     void AddSuccessors(BB *bb);
     void DeleteSuccessors(BB *bb);
 
-    void InsertSingleInstrBefore(SingleInstruction *instToInsert,
+    void InsertSingleInstrBefore(SingleInstruction *instToMove,
                                  SingleInstruction *currentInstr);
     void InsertSingleInstrAfter(SingleInstruction *instToInsert,
                                 SingleInstruction *currentInstr);

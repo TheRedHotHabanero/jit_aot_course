@@ -188,6 +188,7 @@ class InstructionBuilder {
     TwoRegInst *BuildMul(InstType type, VReg vdest, VReg v1, VReg v2) {
         auto *inst = new TwoRegInst(Opcode::MUL, type, vdest, v1, v2);
         instructions_.push_back(inst);
+        inst->SetInstId(instructions_.size());
         return inst;
     }
 
@@ -195,6 +196,7 @@ class InstructionBuilder {
     TwoImmInst *BuildAddi(InstType type, VReg vdest, VReg vreg, T imm) {
         auto *inst = new TwoImmInst(Opcode::ADDI, type, vdest, vreg, imm);
         instructions_.push_back(inst);
+        inst->SetInstId(instructions_.size());
         return inst;
     }
 
@@ -202,6 +204,7 @@ class InstructionBuilder {
     MoveImmInst *BuildMovi(InstType type, VReg vdest, T imm) {
         auto *inst = new MoveImmInst(Opcode::MOVI, type, vdest, imm);
         instructions_.push_back(inst);
+        inst->SetInstId(instructions_.size());
         return inst;
     }
 
@@ -209,6 +212,7 @@ class InstructionBuilder {
                          VReg vreg) {
         auto *inst = new CastInstr(fromType, targetType, vdest, vreg);
         instructions_.push_back(inst);
+        inst->SetInstId(instructions_.size());
         return inst;
     }
 
@@ -216,30 +220,35 @@ class InstructionBuilder {
                         VReg v2) {
         auto *inst = new CompInstr(Opcode::CMP, type, conditions, v1, v2);
         instructions_.push_back(inst);
+        inst->SetInstId(instructions_.size());
         return inst;
     }
 
     JumpInstr *BuildJa(int64_t imm) {
         auto *inst = new JumpInstr(Opcode::JA, imm);
         instructions_.push_back(inst);
+        inst->SetInstId(instructions_.size());
         return inst;
     }
 
     JumpInstr *BuildJmp(int64_t imm) {
         auto *inst = new JumpInstr(Opcode::JMP, imm);
         instructions_.push_back(inst);
+        inst->SetInstId(instructions_.size());
         return inst;
     }
 
     RetInstr *BuildRet(InstType type, VReg vreg) {
         auto *inst = new RetInstr(type, vreg);
         instructions_.push_back(inst);
+        inst->SetInstId(instructions_.size());
         return inst;
     }
 
     PhiInstr *BuildPhi(InstType type, VReg vdest, VReg vreg1, VReg vreg2) {
         auto *inst = new PhiInstr(type, vdest, vreg1, vreg2);
         instructions_.push_back(inst);
+        inst->SetInstId(instructions_.size());
         return inst;
     }
 };

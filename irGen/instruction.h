@@ -31,9 +31,8 @@
 #include <cstdint>
 namespace ir {
 class BB;
-// Type - type of result of inst (s32, u64, ...)
-    // TODO: void
-enum class InstType { i8, i16, i32, i64, u8, u16, u32, u64, INVALID };
+
+enum class InstType { i8, i16, i32, i64, u8, u16, u32, u64, VOID, INVALID };
 
 enum class Opcode {
     MUL,
@@ -77,7 +76,7 @@ class SingleInstruction {
   public:
     SingleInstruction(Opcode opcode, InstType type)
         : opcode_(opcode), prevInst_(nullptr), nextInst_(nullptr),
-          instBB_(nullptr), instType_(type) {}
+          instBB_(nullptr), instType_(type), instID_(INVALID_ID) {}
     SingleInstruction(const SingleInstruction &) = delete;
     SingleInstruction &operator=(const SingleInstruction &) = delete;
     SingleInstruction(SingleInstruction &&) = delete;
@@ -90,12 +89,15 @@ class SingleInstruction {
     SingleInstruction *nextInst_;
     BB *instBB_;
     InstType instType_;
+    size_t instID_;
     VReg vreg_;
     VReg vreg1_;
     VReg vreg2_;
 
+
   public:
     // getters
+    size_t GetInstID() const { return instID_; }
     SingleInstruction *GetPrevInst() { return prevInst_; }
     SingleInstruction *GetNextInst() { return nextInst_; }
     BB *GetInstBB() const { return instBB_; }
@@ -105,9 +107,11 @@ class SingleInstruction {
     VReg GetVirtualReg() { return vreg_; }
     VReg GetVirtualReg1() { return vreg1_; }
     VReg GetVirtualReg2() { return vreg2_; }
+    static const size_t INVALID_ID = static_cast<size_t>(0) - 1;
 
   public:
     // setters
+    void SetInstId(size_t newID) { instID_ = newID; }
     void SetPrevInst(SingleInstruction *inst) { prevInst_ = inst; }
     void SetNextInst(SingleInstruction *inst) { nextInst_ = inst; }
     void SetBB(BB *bb) { instBB_ = bb; }

@@ -40,7 +40,7 @@ TEST_F(GraphTest, TestGraph1) {
     // predecessor of the 1st
     auto *predBBlock1 = irGenerator.CreateEmptyBB();
     instrBuilder.PushBackInst(predBBlock1, addi1);
-    bb->GetGraph()->AddBBAsPredecessor(bb, predBBlock1);
+    bb->GetGraph()->AddBBBefore(bb, predBBlock1);
     ASSERT_EQ(predBBlock1->GetFirstInstBB(), addi1);
     ASSERT_EQ(predBBlock1->GetLastInstBB(), addi1);
     auto succs = predBBlock1->GetSuccessors();
@@ -86,7 +86,7 @@ TEST_F(GraphTest, TestGraph2) {
 
     auto *addiBBlock1 = irGenerator.CreateEmptyBB();
     instrBuilder.PushBackInst(addiBBlock1, addi1);
-    irGenerator.GetGraph()->AddBBAsPredecessor(mulBBlock, addiBBlock1);
+    irGenerator.GetGraph()->AddBBBefore(mulBBlock, addiBBlock1);
 
     auto *addiBBlock2 = irGenerator.CreateEmptyBB();
     instrBuilder.PushBackInst(addiBBlock2, addi2);

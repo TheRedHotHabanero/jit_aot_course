@@ -37,7 +37,7 @@ class Graph {
   public:
     void AddBB(BB *bb);
     void SetBBAsDead(BB *bb);
-    void AddBBAsPredecessor(BB *newBB, BB *bb);
+    void AddBBBefore(BB *newBB, BB *bb);
     void AddBBAsSuccessor(BB *newBB, BB *bb);
     void CleanupUnusedBlocks();
     void DeletePredecessors(BB *bb);

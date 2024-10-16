@@ -83,15 +83,17 @@ void BB::SetInstructionAsDead(SingleInstruction *inst) {
     CheckPhi(inst);
 }
 
-void BB::InsertSingleInstrBefore(SingleInstruction *instToInsert,
+void BB::InsertSingleInstrBefore(SingleInstruction *instToMove,
                                  SingleInstruction *currentInstr) {
-    if (instToInsert == nullptr || currentInstr == nullptr) {
+    // PrevInst  →  instToMove  →  NextInst
+    // PrevInst  →  CurrentInstr  →  instToMove  →  NextInst
+    if (instToMove == nullptr || currentInstr == nullptr) {
         std::cout << "[BB Error] One of instructions went nullptr "
                      "(InsertSingleInstrBefore)"
                   << std::endl;
         std::abort();
     }
-    if (instToInsert->GetInstBB() == nullptr ||
+    if (instToMove->GetInstBB() == nullptr ||
         currentInstr->GetInstBB() == nullptr) {
         std::cout
             << "[BB Error] One of BB went nullptr (InsertSingleInstrBefore)"
@@ -99,10 +101,14 @@ void BB::InsertSingleInstrBefore(SingleInstruction *instToInsert,
         std::abort();
     }
     currentInstr->SetBB(this);
-    auto *tmpPrev = instToInsert->GetPrevInst();
-    instToInsert->SetPrevInst(currentInstr);
+    auto *tmpPrev = instToMove->GetPrevInst();
+    instToMove->SetPrevInst(currentInstr);
     currentInstr->SetPrevInst(tmpPrev);
-    currentInstr->SetNextInst(instToInsert);
+    currentInstr->SetNextInst(instToMove);
+    if (tmpPrev) {
+        tmpPrev->SetNextInst(currentInstr);
+    }
+    // check branches
 
     if (!tmpPrev) {
         firstInstBB_ = currentInstr;
