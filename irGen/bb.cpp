@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <vector>
 namespace ir {
-class SingleInstruction;
+
 void BB::AddSuccessors(BB *bb) {
     if (successors_.size() > 2) {
         std::cout << "[BB Error] More than 2 successors!" << std::endl;
@@ -79,19 +79,19 @@ void BB::SetInstructionAsDead(SingleInstruction *inst) {
     } else {
         lastInstBB_ = tmpPrev;
     }
-
-    CheckPhi(inst);
 }
 
-void BB::InsertSingleInstrBefore(SingleInstruction *instToInsert,
+void BB::InsertSingleInstrBefore(SingleInstruction *instToMove,
                                  SingleInstruction *currentInstr) {
-    if (instToInsert == nullptr || currentInstr == nullptr) {
+    // PrevInst  →  instToMove  →  NextInst
+    // PrevInst  →  CurrentInstr  →  instToMove  →  NextInst
+    if (instToMove == nullptr || currentInstr == nullptr) {
         std::cout << "[BB Error] One of instructions went nullptr "
                      "(InsertSingleInstrBefore)"
                   << std::endl;
         std::abort();
     }
-    if (instToInsert->GetInstBB() == nullptr ||
+    if (instToMove->GetInstBB() == nullptr ||
         currentInstr->GetInstBB() == nullptr) {
         std::cout
             << "[BB Error] One of BB went nullptr (InsertSingleInstrBefore)"
@@ -99,15 +99,18 @@ void BB::InsertSingleInstrBefore(SingleInstruction *instToInsert,
         std::abort();
     }
     currentInstr->SetBB(this);
-    auto *tmpPrev = instToInsert->GetPrevInst();
-    instToInsert->SetPrevInst(currentInstr);
+    auto *tmpPrev = instToMove->GetPrevInst();
+    instToMove->SetPrevInst(currentInstr);
     currentInstr->SetPrevInst(tmpPrev);
-    currentInstr->SetNextInst(instToInsert);
+    currentInstr->SetNextInst(instToMove);
+    if (tmpPrev) {
+        tmpPrev->SetNextInst(currentInstr);
+    }
+    // check branches
 
     if (!tmpPrev) {
         firstInstBB_ = currentInstr;
     }
-    CheckPhi(currentInstr);
 }
 
 void BB::InsertSingleInstrAfter(SingleInstruction *instToInsert,
@@ -135,7 +138,6 @@ void BB::InsertSingleInstrAfter(SingleInstruction *instToInsert,
     if (!tmpNext) {
         lastInstBB_ = currentInstr;
     }
-    CheckPhi(currentInstr);
 }
 
 void BB::PushInstForward(SingleInstruction *instr) {
@@ -149,7 +151,9 @@ void BB::PushInstForward(SingleInstruction *instr) {
     instr->SetBB(this);
 
     // If empty bb, set first and last instr
-    if (firstInstBB_ == nullptr) {
+    if (instr->IsPhi()) {
+        pushPhi(instr);
+    } else if (firstInstBB_ == nullptr) {
         firstInstBB_ = instr;
         lastInstBB_ = instr;
     } else {
@@ -157,8 +161,6 @@ void BB::PushInstForward(SingleInstruction *instr) {
         firstInstBB_->SetPrevInst(instr);
         firstInstBB_ = instr;
     }
-
-    CheckPhi(instr);
 }
 
 void BB::PushInstBackward(SingleInstruction *instr) {
@@ -180,18 +182,19 @@ void BB::PushInstBackward(SingleInstruction *instr) {
         lastInstBB_->SetNextInst(instr);
         lastInstBB_ = instr;
     }
-
-    CheckPhi(instr);
 }
 
-void BB::UpdFirstPhi() {
-    SingleInstruction *instr = GetFirstInstBB();
-    while (instr != nullptr) {
-        if (instr->GetOpcode() == Opcode::PHI) {
-            firstPhiBB_ = instr;
-            break;
-        }
-        instr = instr->GetNextInst();
+void BB::pushPhi(SingleInstruction *instr) {
+    if (instr == nullptr || !instr->IsPhi()) {
+        std::cout << "[BB Error] pushPhi error." << std::endl;
+    }
+    if (!firstPhiBB_) {
+        firstPhiBB_ = reinterpret_cast<PhiInstr *>(instr);
+        firstPhiBB_->SetNextInst(firstInstBB_);
+    } else {
+        instr->SetNextInst(firstPhiBB_);
+        firstPhiBB_->SetPrevInst(instr);
+        firstPhiBB_ = reinterpret_cast<PhiInstr *>(instr);
     }
 }
 

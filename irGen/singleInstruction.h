@@ -23,28 +23,30 @@
     Users           - list of instructions, which have instuction as input
 */
 
-#ifndef JIT_AOT_COURSE_IR_GEN_INSTRUCTIONS_H_
-#define JIT_AOT_COURSE_IR_GEN_INSTRUCTIONS_H_
+#ifndef JIT_AOT_COURSE_IR_GEN_SINGLE_INSTRUCTION_H_
+#define JIT_AOT_COURSE_IR_GEN_SINGLE_INSTRUCTION_H_
 
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <iostream>
+#include <vector>
 namespace ir {
 class BB;
-// Type - type of result of inst (s32, u64, ...)
-    // TODO: void
-enum class InstType { i8, i16, i32, i64, u8, u16, u32, u64, INVALID };
+
+enum class InstType { i8, i16, i32, i64, u8, u16, u32, u64, VOID, INVALID };
 
 enum class Opcode {
     MUL,
     ADDI,
-    MOVI, // Moving constant
     CAST, // Type1 as type2
     CMP,
     JA,  // Cond jump
     JMP, // Non-cond jump
     RET,
     PHI,
+    CONST,
+    ARG,
     INVALID
 };
 
@@ -53,31 +55,11 @@ static constexpr std::array<const char *,
     nameOpcode{"MUL", "ADDI", "MOVI", "CAST",   "CMP",
                "JA",  "JMP",  "RET",  "INVALID"};
 
-enum class Conditions { EQ, NONEQ, LSTHAN, GRTHAN };
-
-class VReg {
-  public:
-    explicit VReg(uint8_t value) : value_(value) {}
-    uint8_t GetRegValue() { return value_; }
-    VReg() = default;
-    VReg(const VReg &) = default;
-    VReg &operator=(const VReg &) = default;
-    VReg(VReg &&) = default;
-    VReg &operator=(VReg &&) = default;
-
-  private:
-    uint8_t value_;
-};
-
-// bool operator==(VReg &lhs, VReg &rhs) {
-//     return lhs.GetRegValue() == rhs.GetRegValue();
-// }
-
 class SingleInstruction {
   public:
     SingleInstruction(Opcode opcode, InstType type)
         : opcode_(opcode), prevInst_(nullptr), nextInst_(nullptr),
-          instBB_(nullptr), instType_(type) {}
+          instBB_(nullptr), instType_(type), instID_(INVALID_ID) {}
     SingleInstruction(const SingleInstruction &) = delete;
     SingleInstruction &operator=(const SingleInstruction &) = delete;
     SingleInstruction(SingleInstruction &&) = delete;
@@ -90,24 +72,24 @@ class SingleInstruction {
     SingleInstruction *nextInst_;
     BB *instBB_;
     InstType instType_;
-    VReg vreg_;
-    VReg vreg1_;
-    VReg vreg2_;
+    size_t instID_;
 
   public:
     // getters
+    size_t GetInstID() const { return instID_; }
     SingleInstruction *GetPrevInst() { return prevInst_; }
     SingleInstruction *GetNextInst() { return nextInst_; }
     BB *GetInstBB() const { return instBB_; }
     Opcode GetOpcode() const { return opcode_; }
     const char *GetOpcodeName(Opcode opcode) const;
     auto GetRegType() { return instType_; }
-    VReg GetVirtualReg() { return vreg_; }
-    VReg GetVirtualReg1() { return vreg1_; }
-    VReg GetVirtualReg2() { return vreg2_; }
+    bool IsInputArgument() const { return opcode_ == Opcode::ARG; }
+    bool IsPhi() const { return opcode_ == Opcode::PHI; }
+    static const size_t INVALID_ID = static_cast<size_t>(0) - 1;
 
   public:
     // setters
+    void SetInstId(size_t newID) { instID_ = newID; }
     void SetPrevInst(SingleInstruction *inst) { prevInst_ = inst; }
     void SetNextInst(SingleInstruction *inst) { nextInst_ = inst; }
     void SetBB(BB *bb) { instBB_ = bb; }
@@ -115,12 +97,9 @@ class SingleInstruction {
     void InsertInstBefore(SingleInstruction *inst);
     void InsertInstAfter(SingleInstruction *inst);
     void SetRegType(InstType type) { instType_ = type; }
-    void SetVirtualReg(VReg vreg) { vreg_ = vreg; }
-    void SetVirtualReg1(VReg vreg) { vreg1_ = vreg; }
-    void SetVirtualReg2(VReg vreg) { vreg2_ = vreg; }
     void PrintSSA();
 };
 
 } // namespace ir
 
-#endif // JIT_AOT_COURSE_IR_GEN_INSTRUCTIONS_H_
+#endif // JIT_AOT_COURSE_IR_GEN_SINGLE_INSTRUCTION_H_

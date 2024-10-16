@@ -1,16 +1,17 @@
 set(SOURCES
     bb.cpp
     graph.cpp
-    instruction.cpp
+    singleInstruction.cpp
     irGen.cpp
     )
 
 add_library(irGen STATIC ${SOURCES})
 
 target_sources(irGen PUBLIC
+        input.h
         bb.h
         graph.h
-        instruction.h
+        singleInstruction.h
         irGen.h
         helperBuilderFunctions.h
         )

@@ -21,10 +21,7 @@ class GraphTest : public ::testing::Test {
 
 TEST_F(GraphTest, TestGraph1) {
     auto instType = InstType::i32;
-    auto vdest = VReg(0);
-    auto vreg1 = VReg(1);
-    auto vreg2 = VReg(2);
-    auto *mul = instrBuilder.BuildMul(instType, vdest, vreg1, vreg2);
+    auto *mul = instrBuilder.BuildMul(instType, nullptr, nullptr);
 
     // Add a single instruction in the 1st basic block
     auto *bb = irGenerator.CreateEmptyBB();
@@ -33,14 +30,14 @@ TEST_F(GraphTest, TestGraph1) {
     ASSERT_EQ(bb->GetFirstInstBB(), mul);
     ASSERT_EQ(bb->GetLastInstBB(), mul);
 
-    auto *addi1 = instrBuilder.BuildAddi(instType, vreg1, vreg1, 32);
-    auto *addi2 = instrBuilder.BuildAddi(instType, vreg2, vreg2, 32);
+    auto *addi1 = instrBuilder.BuildAddi(instType, nullptr, 32);
+    auto *addi2 = instrBuilder.BuildAddi(instType, nullptr, 32);
 
     // Add another instruction in the 2nd basic block, which must be the
     // predecessor of the 1st
     auto *predBBlock1 = irGenerator.CreateEmptyBB();
     instrBuilder.PushBackInst(predBBlock1, addi1);
-    bb->GetGraph()->AddBBAsPredecessor(bb, predBBlock1);
+    bb->GetGraph()->AddBBBefore(bb, predBBlock1);
     ASSERT_EQ(predBBlock1->GetFirstInstBB(), addi1);
     ASSERT_EQ(predBBlock1->GetLastInstBB(), addi1);
     auto succs = predBBlock1->GetSuccessors();
@@ -54,7 +51,7 @@ TEST_F(GraphTest, TestGraph1) {
     // 2nd
     auto *predBBlock2 = irGenerator.CreateEmptyBB();
     instrBuilder.PushBackInst(predBBlock2, addi2);
-    bb->GetGraph()->AddBBAsSuccessor(predBBlock1, predBBlock2);
+    bb->GetGraph()->AddBBBefore(bb, predBBlock2);
     ASSERT_EQ(predBBlock2->GetFirstInstBB(), addi2);
     ASSERT_EQ(predBBlock2->GetLastInstBB(), addi2);
     succs = predBBlock1->GetSuccessors();
@@ -73,12 +70,9 @@ TEST_F(GraphTest, TestGraph1) {
 
 TEST_F(GraphTest, TestGraph2) {
     auto instType = InstType::i32;
-    auto vdest = VReg(0);
-    auto vreg1 = VReg(1);
-    auto vreg2 = VReg(2);
-    auto *mul = instrBuilder.BuildMul(instType, vdest, vreg1, vreg2);
-    auto *addi1 = instrBuilder.BuildAddi(instType, vreg1, vreg1, 32);
-    auto *addi2 = instrBuilder.BuildAddi(instType, vreg2, vreg2, 32);
+    auto *mul = instrBuilder.BuildMul(instType, nullptr, nullptr);
+    auto *addi1 = instrBuilder.BuildAddi(instType, nullptr, 32);
+    auto *addi2 = instrBuilder.BuildAddi(instType, nullptr, 32);
 
     // Create basic blocks as: [addi1] -> [addi2] -> [mul]
     auto *mulBBlock = irGenerator.CreateEmptyBB();
@@ -86,11 +80,11 @@ TEST_F(GraphTest, TestGraph2) {
 
     auto *addiBBlock1 = irGenerator.CreateEmptyBB();
     instrBuilder.PushBackInst(addiBBlock1, addi1);
-    irGenerator.GetGraph()->AddBBAsPredecessor(mulBBlock, addiBBlock1);
+    irGenerator.GetGraph()->AddBBBefore(mulBBlock, addiBBlock1);
 
     auto *addiBBlock2 = irGenerator.CreateEmptyBB();
     instrBuilder.PushBackInst(addiBBlock2, addi2);
-    irGenerator.GetGraph()->AddBBAsSuccessor(addiBBlock1, addiBBlock2);
+    irGenerator.GetGraph()->AddBBBefore(mulBBlock, addiBBlock2);
 
     irGenerator.GetGraph()->PrintSSA();
 
@@ -121,7 +115,7 @@ TEST_F(GraphTest, TestLinkedBlocks) {
     auto *block2 = irGenerator.CreateEmptyBB();
 
     // Link the blocks
-    block1->GetGraph()->AddBBAsSuccessor(block1, block2);
+    block1->GetGraph()->ConnectBBs(block1, block2);
     ASSERT_EQ(block1->GetSuccessors().size(), 1);
     ASSERT_EQ(block1->GetSuccessors()[0], block2);
     ASSERT_EQ(block2->GetPredecessors().size(), 1);

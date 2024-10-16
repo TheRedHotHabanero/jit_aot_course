@@ -25,7 +25,8 @@
 #ifndef JIT_AOT_COURSE_IR_GEN_BB_H_
 #define JIT_AOT_COURSE_IR_GEN_BB_H_
 
-#include "instruction.h"
+#include "instructions.h"
+#include "singleInstruction.h"
 #include <iostream>
 #include <vector>
 
@@ -50,7 +51,7 @@ class BB {
   private:
     // according to the scheme
     size_t bbId_;
-    SingleInstruction *firstPhiBB_;
+    PhiInstr *firstPhiBB_;
     std::vector<BB *> predecessors_;
     std::vector<BB *> successors_;
     SingleInstruction *firstInstBB_;
@@ -60,7 +61,7 @@ class BB {
   public:
     // getters for all in private section
     size_t GetId() { return bbId_; }
-    SingleInstruction *GetFirstPhiBB() { return firstPhiBB_; }
+    PhiInstr *GetFirstPhiBB() { return firstPhiBB_; }
     std::vector<BB *> &GetPredecessors() { return predecessors_; }
     std::vector<BB *> &GetSuccessors() { return successors_; }
     SingleInstruction *GetFirstInstBB() { return firstInstBB_; }
@@ -74,7 +75,7 @@ class BB {
     void AddSuccessors(BB *bb);
     void DeleteSuccessors(BB *bb);
 
-    void InsertSingleInstrBefore(SingleInstruction *instToInsert,
+    void InsertSingleInstrBefore(SingleInstruction *instToMove,
                                  SingleInstruction *currentInstr);
     void InsertSingleInstrAfter(SingleInstruction *instToInsert,
                                 SingleInstruction *currentInstr);
@@ -83,12 +84,7 @@ class BB {
     void PushInstForward(SingleInstruction *instr);
     void PushInstBackward(SingleInstruction *instr);
 
-    void UpdFirstPhi();
-    void CheckPhi(SingleInstruction *instr) {
-        if (instr->GetOpcode() == Opcode::PHI) {
-            UpdFirstPhi();
-        }
-    }
+    void pushPhi(SingleInstruction *instr);
     void PrintSSA();
 };
 

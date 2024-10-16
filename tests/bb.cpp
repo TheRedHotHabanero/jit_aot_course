@@ -27,10 +27,7 @@ TEST_F(BBTest, TestBB1) {
     ASSERT_EQ(bb->GetGraph(), irGenerator.GetGraph());
 
     auto instType = InstType::i32;
-    auto vdest = VReg(0);
-    auto vreg1 = VReg(1);
-    auto vreg2 = VReg(2);
-    auto *mul = instructionBuilder.BuildMul(instType, vdest, vreg1, vreg2);
+    auto *mul = instructionBuilder.BuildMul(instType, nullptr, nullptr);
 
     // Add 1st instruction
     bb->PushInstBackward(mul);
@@ -38,8 +35,8 @@ TEST_F(BBTest, TestBB1) {
     ASSERT_EQ(bb->GetFirstInstBB(), mul);
     ASSERT_EQ(bb->GetLastInstBB(), mul);
 
-    auto *addi1 = instructionBuilder.BuildAddi(instType, vreg1, vreg1, 32);
-    auto *addi2 = instructionBuilder.BuildAddi(instType, vreg2, vreg2, 32);
+    auto *addi1 = instructionBuilder.BuildAddi(instType, nullptr, 32);
+    auto *addi2 = instructionBuilder.BuildAddi(instType, nullptr, 32);
 
     // Add 2nd instruction to the start of the basic block
     bb->PushInstForward(addi2);
@@ -59,12 +56,9 @@ TEST_F(BBTest, TestBB2) {
     auto *bb = irGenerator.CreateEmptyBB();
 
     auto instType = InstType::i32;
-    auto vdest = VReg(0);
-    auto vreg1 = VReg(1);
-    auto vreg2 = VReg(2);
-    auto *mul = instructionBuilder.BuildMul(instType, vdest, vreg1, vreg2);
-    auto *addi1 = instructionBuilder.BuildAddi(instType, vreg1, vreg1, 32);
-    auto *addi2 = instructionBuilder.BuildAddi(instType, vreg2, vreg2, 32);
+    auto *mul = instructionBuilder.BuildMul(instType, nullptr, nullptr);
+    auto *addi1 = instructionBuilder.BuildAddi(instType, nullptr, 32);
+    auto *addi2 = instructionBuilder.BuildAddi(instType, nullptr, 32);
 
     // Add each instruction separately
     instructionBuilder.PushBackInst(bb, addi1);
@@ -80,12 +74,9 @@ TEST_F(BBTest, TestBB2) {
 
 TEST_F(BBTest, TestBB3) {
     auto instType = InstType::i32;
-    auto vdest = VReg(0);
-    auto vreg1 = VReg(1);
-    auto vreg2 = VReg(2);
-    auto *mul = instructionBuilder.BuildMul(instType, vdest, vreg1, vreg2);
-    auto *addi1 = instructionBuilder.BuildAddi(instType, vreg1, vreg1, 32);
-    auto *addi2 = instructionBuilder.BuildAddi(instType, vreg2, vreg2, 32);
+    auto *mul = instructionBuilder.BuildMul(instType, nullptr, nullptr);
+    auto *addi1 = instructionBuilder.BuildAddi(instType, nullptr, 32);
+    auto *addi2 = instructionBuilder.BuildAddi(instType, nullptr, 32);
 
     // Add each instruction separately
     auto *bb = irGenerator.CreateEmptyBB();
@@ -116,10 +107,8 @@ TEST_F(BBTest, TestBB3) {
 
 TEST_F(BBTest, TestBBCreateCmp) {
     auto instType = InstType::i32;
-    auto vreg1 = VReg(1);
-    auto vreg2 = VReg(2);
     auto *cmp =
-        instructionBuilder.BuildCmp(instType, Conditions::EQ, vreg1, vreg2);
+        instructionBuilder.BuildCmp(instType, Conditions::EQ, nullptr, nullptr);
 
     auto *bb = irGenerator.CreateEmptyBB();
     bb->PushInstBackward(cmp);
@@ -130,10 +119,7 @@ TEST_F(BBTest, TestBBCreateCmp) {
 TEST_F(BBTest, TestBBCreateCast) {
     auto fromType = InstType::i32;
     auto toType = InstType::i64;
-    auto vdest = VReg(0);
-    auto vreg = VReg(1);
-    auto *cast = instructionBuilder.BuildCast(fromType, toType, vdest, vreg);
-
+    auto *cast = instructionBuilder.BuildCast(fromType, toType, nullptr);
     auto *bb = irGenerator.CreateEmptyBB();
     bb->PushInstBackward(cast);
     ASSERT_EQ(bb->GetFirstInstBB(), cast);
@@ -142,10 +128,7 @@ TEST_F(BBTest, TestBBCreateCast) {
 
 TEST_F(BBTest, TestBBCreatePhi) {
     auto instType = InstType::i32;
-    auto vdest = VReg(0);
-    auto vreg1 = VReg(1);
-    auto vreg2 = VReg(2);
-    auto *phi = instructionBuilder.BuildPhi(instType, vdest, vreg1, vreg2);
+    auto *phi = instructionBuilder.BuildPhi(instType);
 
     auto *bb = irGenerator.CreateEmptyBB();
     bb->PushInstBackward(phi);

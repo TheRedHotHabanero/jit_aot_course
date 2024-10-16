@@ -2,155 +2,12 @@
 #define JIT_AOT_COURSE_IR_GEN_HELPER_BUILDER_FUNCTIONS_H_
 
 #include "graph.h"
+#include "instructions.h"
+#include <cstdint>
+#include <type_traits>
 #include <vector>
 
 namespace ir {
-
-// Who contains results-----------------------------------------------------
-class DestIsVirtualReg {
-  public:
-    DestIsVirtualReg(VReg vreg) : destReg_(vreg) {}
-    auto GetDestVReg() { return destReg_; }
-    void SetDestVReg(VReg vreg) { destReg_ = vreg; }
-
-  private:
-    VReg destReg_;
-};
-
-template <typename T> class DestIsImm {
-  public:
-    explicit DestIsImm(T value) : destImm_(value) {}
-    auto GetImm() { return destImm_; }
-    void SetImm(T value) { destImm_ = value; }
-
-  private:
-    T destImm_;
-};
-
-class DestCondition {
-  public:
-    DestCondition(Conditions condition) : condition_(condition) {}
-    auto GetCondCode() const { return condition_; }
-    void SetCondCode(Conditions condition) { condition_ = condition; }
-
-  private:
-    Conditions condition_;
-};
-// ----------------------------------------------------------------------------------
-
-// Specific Instruction containers according to Opcode
-// list--------------------------------
-
-class SingleRegInst : public SingleInstruction, public DestIsVirtualReg {
-  public:
-    SingleRegInst(Opcode opcode, InstType type, VReg vdest, VReg vreg)
-        : SingleInstruction(opcode, type), DestIsVirtualReg(vdest),
-          vreg_(vreg) {}
-
-    auto GetVReg() { return vreg_; }
-    void SetVReg(VReg newVReg) { vreg_ = newVReg; }
-
-  private:
-    VReg vreg_;
-};
-
-class TwoRegInst : public SingleInstruction, public DestIsVirtualReg {
-  public:
-    TwoRegInst(Opcode opcode, InstType type, VReg vdest, VReg vreg1, VReg vreg2)
-        : SingleInstruction(opcode, type), DestIsVirtualReg(vdest),
-          vreg1_(vreg1), vreg2_(vreg2) {}
-
-    auto GetVReg1() { return vreg1_; }
-    auto GetVReg2() { return vreg2_; }
-    void SetVReg1(VReg newVReg) { vreg1_ = newVReg; }
-    void SetVReg2(VReg newVReg) { vreg2_ = newVReg; }
-
-  private:
-    VReg vreg1_;
-    VReg vreg2_;
-};
-
-class TwoImmInst : public SingleInstruction,
-                   public DestIsVirtualReg,
-                   public DestIsImm<uint64_t> {
-  public:
-    TwoImmInst(Opcode opcode, InstType type, VReg vdest, VReg vreg,
-               uint64_t imm)
-        : SingleInstruction(opcode, type),
-          DestIsVirtualReg(vdest), DestIsImm<uint64_t>(imm), vreg_(vreg) {}
-
-    auto GetVReg() { return vreg_; }
-    void SetVReg(VReg newVReg) { vreg_ = newVReg; }
-
-  private:
-    VReg vreg_;
-};
-
-class MoveImmInst : public SingleInstruction,
-                    public DestIsVirtualReg,
-                    public DestIsImm<uint64_t> {
-  public:
-    MoveImmInst(Opcode opcode, InstType type, VReg vdest, uint64_t imm)
-        : SingleInstruction(opcode, type),
-          DestIsVirtualReg(vdest), DestIsImm<uint64_t>(imm) {}
-};
-
-class CompInstr : public SingleInstruction, public DestCondition {
-  public:
-    CompInstr(Opcode opcode, InstType type, Conditions confition, VReg v1,
-              VReg v2)
-        : SingleInstruction(opcode, type), DestCondition(confition), vreg1_(v1),
-          vreg2_(v2) {}
-
-    auto GetVReg1() { return vreg1_; }
-    auto GetVReg2() { return vreg2_; }
-    void SetVReg1(VReg newVReg) { vreg1_ = newVReg; }
-    void SetVReg2(VReg newVReg) { vreg2_ = newVReg; }
-
-  private:
-    VReg vreg1_;
-    VReg vreg2_;
-};
-
-class CastInstr : public SingleRegInst {
-  public:
-    explicit CastInstr(InstType fromType, InstType targetType, VReg vdest,
-                       VReg vreg)
-        : SingleRegInst(Opcode::CAST, fromType, vdest, vreg),
-          targetType_(targetType) {}
-
-    auto GetTargetType() { return targetType_; }
-    void SetTargetType(InstType newType) { targetType_ = newType; }
-
-  private:
-    InstType targetType_;
-};
-
-class JumpInstr : public SingleInstruction, public DestIsImm<uint64_t> {
-  public:
-    JumpInstr(Opcode opcode, uint64_t imm)
-        : SingleInstruction(opcode, InstType::i64), DestIsImm<uint64_t>(imm) {}
-};
-
-class RetInstr : public SingleInstruction {
-  public:
-    RetInstr(InstType type, VReg vreg)
-        : SingleInstruction(Opcode::RET, type), vreg_(vreg) {}
-
-    auto GetVReg() { return vreg_; }
-    void SetVReg(VReg newVReg) { vreg_ = newVReg; }
-
-  private:
-    VReg vreg_;
-};
-
-class PhiInstr : public TwoRegInst {
-  public:
-    PhiInstr(InstType type, VReg vdest, VReg vreg1, VReg vreg2)
-        : TwoRegInst(Opcode::PHI, type, vdest, vreg1, vreg2) {}
-};
-
-// ------------------------------------------------------------------------------------------
 
 class InstructionBuilder {
 
@@ -182,64 +39,101 @@ class InstructionBuilder {
     }
 
   private:
-    std::vector<SingleInstruction *> instructions_; //добавить номера инструкций, но не int сделать
+    std::vector<SingleInstruction *> instructions_;
 
   public:
-    TwoRegInst *BuildMul(InstType type, VReg vdest, VReg v1, VReg v2) {
-        auto *inst = new TwoRegInst(Opcode::MUL, type, vdest, v1, v2);
+    TwoRegInst *BuildMul(InstType type, Input input1, Input input2) {
+        auto *inst = new TwoRegInst(Opcode::MUL, type, input1, input2);
         instructions_.push_back(inst);
+        inst->SetInstId(instructions_.size());
         return inst;
     }
 
-    template <typename T>
-    TwoImmInst *BuildAddi(InstType type, VReg vdest, VReg vreg, T imm) {
-        auto *inst = new TwoImmInst(Opcode::ADDI, type, vdest, vreg, imm);
+    template <typename T,
+              typename = std::enable_if_t<
+                  std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> ||
+                  std::is_same_v<T, int32_t> || std::is_same_v<T, int64_t> ||
+                  std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t> ||
+                  std::is_same_v<T, uint32_t> || std::is_same_v<T, uint64_t>>>
+    TwoRegInst *BuildAddi(InstType type, Input input, T immediate) {
+        auto *constInstr = new ConstInstr(
+            Opcode::CONST, type,
+            static_cast<uint64_t>(immediate)); // Используем ConstInstr
+        Input immInput = Input(constInstr); // Оборачиваем в Input
+        auto *inst = new TwoRegInst(Opcode::ADDI, type, input, immInput);
         instructions_.push_back(inst);
+        inst->SetInstId(instructions_.size());
         return inst;
     }
 
-    template <typename T>
-    MoveImmInst *BuildMovi(InstType type, VReg vdest, T imm) {
-        auto *inst = new MoveImmInst(Opcode::MOVI, type, vdest, imm);
+    template <typename T,
+              typename = std::enable_if_t<
+                  std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> ||
+                  std::is_same_v<T, int32_t> || std::is_same_v<T, int64_t> ||
+                  std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t> ||
+                  std::is_same_v<T, uint32_t> || std::is_same_v<T, uint64_t>>>
+    ConstInstr *BuildConst(InstType type, T imm) {
+        auto *inst = new ConstInstr(Opcode::CONST, type, imm);
         instructions_.push_back(inst);
+        inst->SetInstId(instructions_.size());
         return inst;
     }
 
-    CastInstr *BuildCast(InstType fromType, InstType targetType, VReg vdest,
-                         VReg vreg) {
-        auto *inst = new CastInstr(fromType, targetType, vdest, vreg);
+    CastInstr *BuildCast(InstType fromType, InstType targetType, Input input) {
+        auto *inst = new CastInstr(fromType, targetType, input);
         instructions_.push_back(inst);
+        inst->SetInstId(instructions_.size());
         return inst;
     }
 
-    CompInstr *BuildCmp(InstType type, Conditions conditions, VReg v1,
-                        VReg v2) {
-        auto *inst = new CompInstr(Opcode::CMP, type, conditions, v1, v2);
+    CompInstr *BuildCmp(InstType type, Conditions conditions, Input input1,
+                        Input input2) {
+        auto *inst =
+            new CompInstr(Opcode::CMP, type, conditions, input1, input2);
         instructions_.push_back(inst);
+        inst->SetInstId(instructions_.size());
         return inst;
     }
 
-    JumpInstr *BuildJa(int64_t imm) {
+    JumpInstr *BuildJa(int64_t imm = -1) {
         auto *inst = new JumpInstr(Opcode::JA, imm);
         instructions_.push_back(inst);
+        inst->SetInstId(instructions_.size());
         return inst;
     }
 
     JumpInstr *BuildJmp(int64_t imm) {
         auto *inst = new JumpInstr(Opcode::JMP, imm);
         instructions_.push_back(inst);
+        inst->SetInstId(instructions_.size());
         return inst;
     }
 
-    RetInstr *BuildRet(InstType type, VReg vreg) {
-        auto *inst = new RetInstr(type, vreg);
+    RetInstr *BuildRet(InstType type, Input input) {
+        auto *inst = new RetInstr(type, input);
         instructions_.push_back(inst);
+        inst->SetInstId(instructions_.size());
         return inst;
     }
 
-    PhiInstr *BuildPhi(InstType type, VReg vdest, VReg vreg1, VReg vreg2) {
-        auto *inst = new PhiInstr(type, vdest, vreg1, vreg2);
+    PhiInstr *BuildPhi(InstType type) {
+        auto *inst = new PhiInstr(type);
         instructions_.push_back(inst);
+        inst->SetInstId(instructions_.size());
+        return inst;
+    }
+
+    template <typename... T> PhiInstr *BuildPhi(InstType type, T... inputs) {
+        auto *inst = new PhiInstr(type, inputs...);
+        instructions_.push_back(inst);
+        inst->SetInstId(instructions_.size());
+        return inst;
+    }
+
+    InputArgInstr *BuildArg(InstType type) {
+        auto *inst = new InputArgInstr(type);
+        instructions_.push_back(inst);
+        inst->SetInstId(instructions_.size());
         return inst;
     }
 };

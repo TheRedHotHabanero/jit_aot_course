@@ -6,8 +6,8 @@
        | Blocks             |
        | Method Info        |   keeps shared data between compiler/interpreter
        | Runtime Info       |   get info about runtime types
-       | Optimiztions Info  |   keeps info about analyses and optimization pipeline
-       | Backend info       |   arch-specific |
+       | Optimiztions Info  |   keeps info about analyses and optimization
+   pipeline | Backend info       |   arch-specific |
    ___________________|______________________________________________________
 */
 
@@ -15,7 +15,7 @@
 #define JIT_AOT_COURSE_IR_GEN_GRAPH_H_
 
 #include "bb.h"
-
+#include <vector>
 namespace ir {
 
 class Graph {
@@ -37,13 +37,14 @@ class Graph {
   public:
     void AddBB(BB *bb);
     void SetBBAsDead(BB *bb);
-    void AddBBAsPredecessor(BB *newBB, BB *bb);
-    void AddBBAsSuccessor(BB *newBB, BB *bb);
+    void AddBBBefore(BB *newBB, BB *bb);
+    // void AddBBAsSuccessor(BB *newBB, BB *bb);
     void CleanupUnusedBlocks();
     void DeletePredecessors(BB *bb);
     void DeleteSuccessors(BB *bb);
     void UpdPhiInst();
     void PrintSSA();
+    void ConnectBBs(BB *lhs, BB *rhs);
 
   private:
     BB *firstBB_;

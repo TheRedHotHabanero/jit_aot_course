@@ -4,8 +4,6 @@ set(SOURCES
     bb.cpp
     graph.cpp
     instructions.cpp
-    fact1.cpp
-    fact.cpp
     main.cpp
 )
 

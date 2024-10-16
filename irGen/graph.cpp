@@ -3,6 +3,12 @@
 #include <cstdlib>
 
 namespace ir {
+
+void Graph::ConnectBBs(BB *lhs, BB *rhs) {
+    lhs->AddSuccessors(rhs);
+    rhs->AddPredecessors(lhs);
+}
+
 void Graph::AddBB(BB *bb) {
     if (bb == nullptr) {
         std::cout << "[Graph Error] BB went nullptr (AddBB)." << std::endl;
@@ -13,57 +19,57 @@ void Graph::AddBB(BB *bb) {
     bb->SetGraph(this);
 }
 
-void Graph::AddBBAsPredecessor(BB *newBB, BB *bb) {
-    if (bb == nullptr || newBB == nullptr) {
-        std::cout
-            << "[Graph Error] BB or newBB went nullptr (AddBBAsPredecessor)"
-            << std::endl;
+// AddBBAsPredecessor -> AddBBBefore
+void Graph::AddBBBefore(BB *bb_before, BB *bb) {
+    if (bb == nullptr || bb_before == nullptr) {
+        std::cout << "[Graph Error] BB or bb_before went nullptr (AddBBBefore)"
+                  << std::endl;
         std::abort();
     }
-    if (newBB->GetGraph() != this || bb->GetGraph() == nullptr) {
-        std::cout << "[Graph Error] GetGraph error in 'AddBBAsPredecessor'."
+    if (bb_before->GetGraph() != this || bb->GetGraph() == nullptr) {
+        std::cout << "[Graph Error] GetGraph error in 'AddBBBefore'."
                   << std::endl;
         std::abort();
     }
     bb->SetGraph(this);
 
     // add of the same part as succ
-    for (auto *b : newBB->GetPredecessors()) {
-        b->DeleteSuccessors(newBB);
+    for (auto *b : bb_before->GetPredecessors()) {
+        b->DeleteSuccessors(bb_before);
         b->AddSuccessors(bb);
         bb->AddPredecessors(b);
     }
-    newBB->GetPredecessors().clear();
-    newBB->AddPredecessors(bb);
-    bb->AddSuccessors(newBB);
+    bb_before->GetPredecessors().clear();
+    bb_before->AddPredecessors(bb);
+    bb->AddSuccessors(bb_before);
 }
 
-void Graph::AddBBAsSuccessor(BB *newBB, BB *bb) {
-    if (bb == nullptr || newBB == nullptr) {
-        std::cout << "[BB Error] BB or newBB went nullptr (AddBBAsSuccessor)"
-                  << std::endl;
-        std::abort();
-    }
-    if (newBB->GetGraph() != this || bb->GetGraph() == nullptr) {
-        std::cout << "[Graph Error] GetGraph error in 'AddBBAsSuccessor'."
-                  << std::endl;
-        std::abort();
-    }
-    bb->SetGraph(this);
-
-    // end of the same part with pred
-    for (auto *b : newBB->GetSuccessors()) {
-        b->DeletePredecessors(newBB);
-        b->AddPredecessors(bb);
-        bb->AddSuccessors(b);
-    }
-    newBB->GetSuccessors().clear();
-    newBB->AddSuccessors(bb);
-    bb->AddPredecessors(newBB);
-    if (lastBB_ == newBB) {
-        lastBB_ = bb;
-    }
-}
+// void Graph::AddBBAsSuccessor(BB *newBB, BB *bb) {
+//     if (bb == nullptr || newBB == nullptr) {
+//         std::cout << "[BB Error] BB or newBB went nullptr (AddBBAsSuccessor)"
+//                   << std::endl;
+//         std::abort();
+//     }
+//     if (newBB->GetGraph() != this || bb->GetGraph() == nullptr) {
+//         std::cout << "[Graph Error] GetGraph error in 'AddBBAsSuccessor'."
+//                   << std::endl;
+//         std::abort();
+//     }
+//     bb->SetGraph(this);
+//
+//     // end of the same part with pred
+//     for (auto *b : newBB->GetSuccessors()) {
+//         b->DeletePredecessors(newBB);
+//         b->AddPredecessors(bb);
+//         bb->AddSuccessors(b);
+//     }
+//     newBB->GetSuccessors().clear();
+//     newBB->AddSuccessors(bb);
+//     bb->AddPredecessors(newBB);
+//     if (lastBB_ == newBB) {
+//         lastBB_ = bb;
+//     }
+// }
 
 void Graph::SetBBAsDead(BB *bb) {
     if (bb == nullptr) {

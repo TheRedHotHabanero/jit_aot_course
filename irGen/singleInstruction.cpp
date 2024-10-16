@@ -1,3 +1,4 @@
+#include "singleInstruction.h"
 #include "bb.h"
 #include <cstdlib>
 #include <iostream>
@@ -27,6 +28,9 @@ InstType getInstType(const std::type_info &type) {
     }
     if (type == typeid(uint64_t)) {
         return InstType::u64;
+    }
+    if (type == typeid(void)) {
+        return InstType::VOID;
     }
 
     std::cout << "[Operand Error] Operand type is out of possible values."
@@ -74,14 +78,10 @@ void SingleInstruction::InsertInstAfter(SingleInstruction *inst) {
 
 void SingleInstruction::PrintSSA() {
     std::cout << "  ";
-    std::cout << GetOpcodeName(GetOpcode()) << " "; // Print opcode name
-    std::cout
-        << "%"
-        << GetVirtualReg().GetRegValue(); // Print destination virtual register
+    std::cout << GetOpcodeName(GetOpcode()) << " ";
+    std::cout << "%" << instID_;
 
     // Print operands
-    std::cout << ", %" << GetVirtualReg1().GetRegValue();
-    std::cout << ", %" << GetVirtualReg2().GetRegValue();
     std::cout << std::endl;
 }
 
