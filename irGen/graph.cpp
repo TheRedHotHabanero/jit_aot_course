@@ -83,7 +83,7 @@ void Graph::SetBBAsDead(BB *bb) {
     }
     if (std::find(BBs_.begin(), BBs_.end(), bb) == BBs_.end()) {
 
-        std::cout << "[Graph Error] Failed to find BasicBlock." << std::endl;
+        std::cout << "[Graph Error] Failed to find BB." << std::endl;
         std::abort();
     }
     auto id = bb->GetId();

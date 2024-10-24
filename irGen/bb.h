@@ -32,16 +32,16 @@
 
 namespace ir {
 class Graph;
-static constexpr size_t const INVALID_BB_ID = -1;
+static const size_t INVALID_BB_ID = static_cast<size_t>(-1);
 
 class BB {
   public:
     BB()
         : bbId_(INVALID_BB_ID), firstPhiBB_(nullptr), firstInstBB_(nullptr),
-          lastInstBB_(nullptr), graph_(nullptr){};
-    explicit BB(Graph *graph)
+          lastInstBB_(nullptr), dominator_(nullptr), graph_(nullptr){};
+    BB(Graph *graph)
         : bbId_(INVALID_BB_ID), firstPhiBB_(nullptr), firstInstBB_(nullptr),
-          lastInstBB_(nullptr), graph_(graph){};
+          lastInstBB_(nullptr), dominator_(nullptr), graph_(graph){};
     BB(const BB &) = delete;
     BB &operator=(const BB &) = delete;
     BB(BB &&) = delete;
@@ -56,7 +56,9 @@ class BB {
     std::vector<BB *> successors_;
     SingleInstruction *firstInstBB_;
     SingleInstruction *lastInstBB_;
+    BB *dominator_;
     Graph *graph_;
+    std::vector<BB *> dominated_;
 
   public:
     // getters for all in private section
@@ -67,6 +69,10 @@ class BB {
     SingleInstruction *GetFirstInstBB() { return firstInstBB_; }
     SingleInstruction *GetLastInstBB() { return lastInstBB_; }
     Graph *GetGraph() { return graph_; }
+    BB *GetDominator() { return dominator_; }
+    const BB *GetDominator() const { return dominator_; }
+    std::vector<BB *> &GetDominatedBBs() { return dominated_; }
+    const std::vector<BB *> &GetDominatedBBs() const { return dominated_; }
 
   public:
     void SetId(size_t id) { bbId_ = id; }
@@ -84,7 +90,9 @@ class BB {
     void PushInstForward(SingleInstruction *instr);
     void PushInstBackward(SingleInstruction *instr);
 
-    void pushPhi(SingleInstruction *instr);
+    void PushPhi(SingleInstruction *instr);
+    void SetDominator(BB *newIDom) { dominator_ = newIDom; }
+    void AddDominatedBlock(BB *bblock) { dominated_.push_back(bblock); }
     void PrintSSA();
 };
 

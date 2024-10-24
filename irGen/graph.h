@@ -45,6 +45,8 @@ class Graph {
     void UpdPhiInst();
     void PrintSSA();
     void ConnectBBs(BB *lhs, BB *rhs);
+    size_t GetBBCount() const { return BBs_.size(); }
+    bool IsEmpty() const { return BBs_.empty(); }
 
   private:
     BB *firstBB_;

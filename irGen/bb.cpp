@@ -4,6 +4,8 @@
 #include <vector>
 namespace ir {
 
+// const size_t BB::INVALID_BB_ID;
+
 void BB::AddSuccessors(BB *bb) {
     if (successors_.size() > 2) {
         std::cout << "[BB Error] More than 2 successors!" << std::endl;
@@ -152,7 +154,7 @@ void BB::PushInstForward(SingleInstruction *instr) {
 
     // If empty bb, set first and last instr
     if (instr->IsPhi()) {
-        pushPhi(instr);
+        PushPhi(instr);
     } else if (firstInstBB_ == nullptr) {
         firstInstBB_ = instr;
         lastInstBB_ = instr;
@@ -184,9 +186,9 @@ void BB::PushInstBackward(SingleInstruction *instr) {
     }
 }
 
-void BB::pushPhi(SingleInstruction *instr) {
+void BB::PushPhi(SingleInstruction *instr) {
     if (instr == nullptr || !instr->IsPhi()) {
-        std::cout << "[BB Error] pushPhi error." << std::endl;
+        std::cout << "[BB Error] PushPhi error." << std::endl;
     }
     if (!firstPhiBB_) {
         firstPhiBB_ = reinterpret_cast<PhiInstr *>(instr);

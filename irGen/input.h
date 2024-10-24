@@ -5,7 +5,7 @@ namespace ir {
 
 class SingleInstruction;
 
-class Input final {
+class Input  {
   public:
     Input() : instr_(nullptr) {}
     Input(SingleInstruction *instr) : instr_(instr) {}

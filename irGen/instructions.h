@@ -115,7 +115,7 @@ class VarInputsInstr : public InputsInstr {
 // Who contains results-----------------------------------------------------
 template <typename T> class DestIsImm {
   public:
-    explicit DestIsImm(T value) : destImm_(value) {}
+    DestIsImm(T value) : destImm_(value) {}
     auto GetValue() { return destImm_; }
     void SetImm(T value) { destImm_ = value; }
 
