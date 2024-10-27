@@ -32,16 +32,19 @@
 
 namespace ir {
 class Graph;
+class Loop;
 static const size_t INVALID_BB_ID = static_cast<size_t>(-1);
 
 class BB {
   public:
     BB()
         : bbId_(INVALID_BB_ID), firstPhiBB_(nullptr), firstInstBB_(nullptr),
-          lastInstBB_(nullptr), dominator_(nullptr), graph_(nullptr){};
+          lastInstBB_(nullptr), dominator_(nullptr), loop_(nullptr),
+          graph_(nullptr){};
     BB(Graph *graph)
         : bbId_(INVALID_BB_ID), firstPhiBB_(nullptr), firstInstBB_(nullptr),
-          lastInstBB_(nullptr), dominator_(nullptr), graph_(graph){};
+          lastInstBB_(nullptr), dominator_(nullptr), loop_(nullptr),
+          graph_(graph){};
     BB(const BB &) = delete;
     BB &operator=(const BB &) = delete;
     BB(BB &&) = delete;
@@ -57,6 +60,7 @@ class BB {
     SingleInstruction *firstInstBB_;
     SingleInstruction *lastInstBB_;
     BB *dominator_;
+    Loop *loop_;
     Graph *graph_;
     std::vector<BB *> dominated_;
 
@@ -73,6 +77,9 @@ class BB {
     const BB *GetDominator() const { return dominator_; }
     std::vector<BB *> &GetDominatedBBs() { return dominated_; }
     const std::vector<BB *> &GetDominatedBBs() const { return dominated_; }
+    bool Domites(const BB *bblock) const;
+    Loop *GetLoop() { return loop_; }
+    const Loop *GetLoop() const { return loop_; }
 
   public:
     void SetId(size_t id) { bbId_ = id; }
@@ -93,6 +100,7 @@ class BB {
     void PushPhi(SingleInstruction *instr);
     void SetDominator(BB *newIDom) { dominator_ = newIDom; }
     void AddDominatedBlock(BB *bblock) { dominated_.push_back(bblock); }
+    void SetLoop(Loop *newLoop) { loop_ = newLoop; }
     void PrintSSA();
 };
 

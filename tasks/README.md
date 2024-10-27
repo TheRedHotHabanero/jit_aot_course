@@ -17,7 +17,7 @@ dominance of blocks and instructions.
 
 
 # Task 3
-Implement LoopAnalyzer + UT
+Implement LoopChecker + UT
 
 # Resources for task 3:
 [LLVM Loop terminology](https://llvm.org/docs/LoopTerminology.html)

@@ -51,7 +51,8 @@ void BB::DeletePredecessors(BB *bb) {
     }
     auto it = std::find(predecessors_.begin(), predecessors_.end(), bb);
     if (it != predecessors_.end()) {
-        predecessors_.erase(it);
+        *it = predecessors_.back();
+        predecessors_.pop_back();
     } else {
         std::cout << "[BB Error] DeletePredecessors." << std::endl;
         std::abort();
@@ -198,6 +199,21 @@ void BB::PushPhi(SingleInstruction *instr) {
         firstPhiBB_->SetPrevInst(instr);
         firstPhiBB_ = reinterpret_cast<PhiInstr *>(instr);
     }
+}
+
+bool BB::Domites(const BB *bblock) const {
+    if (bblock == nullptr) {
+        std::cout << "[BB Error] in Domites" << std::endl;
+        std::abort();
+    }
+    auto *dom = bblock->GetDominator();
+    while (dom != nullptr) {
+        if (dom == this) {
+            return true;
+        }
+        dom = dom->GetDominator();
+    }
+    return false;
 }
 
 void BB::PrintSSA() {

@@ -18,9 +18,11 @@
 #include <vector>
 namespace ir {
 
+class Loop;
+
 class Graph {
   public:
-    Graph() : firstBB_(nullptr), lastBB_(nullptr) {}
+    Graph() : firstBB_(nullptr), lastBB_(nullptr), loopTreeRoot_(nullptr) {}
     Graph &operator=(const Graph &) = delete;
     Graph(const Graph &) = delete;
     Graph(Graph &&) = delete;
@@ -33,12 +35,15 @@ class Graph {
     void SetFirstBB(BB *bb) { firstBB_ = bb; }
     void SetLastBB(BB *bb) { lastBB_ = bb; }
     std::vector<BB *> GetBBs() { return BBs_; }
+    Loop *GetLoopTree() { return loopTreeRoot_; }
+    const Loop *GetLoopTree() const { return loopTreeRoot_; }
 
   public:
     void AddBB(BB *bb);
     void SetBBAsDead(BB *bb);
     void AddBBBefore(BB *newBB, BB *bb);
     // void AddBBAsSuccessor(BB *newBB, BB *bb);
+    void SetLoopTree(Loop *loop) { loopTreeRoot_ = loop; }
     void CleanupUnusedBlocks();
     void DeletePredecessors(BB *bb);
     void DeleteSuccessors(BB *bb);
@@ -52,6 +57,7 @@ class Graph {
     BB *firstBB_;
     BB *lastBB_;
     std::vector<BB *> BBs_;
+    Loop *loopTreeRoot_;
 };
 } // namespace ir
 

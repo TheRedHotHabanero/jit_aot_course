@@ -6,6 +6,7 @@ set(SOURCES
     dfo_rpo.cpp
     domTree.cpp
     instructions.cpp
+    loopChecker.cpp
     main.cpp
 )
 
