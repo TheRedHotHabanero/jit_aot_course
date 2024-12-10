@@ -30,7 +30,9 @@ void LoopChecker::InitializeLoopStructures(size_t bblocksCount) {
 
 void LoopChecker::IdentifyBackEdges(Graph *graph) {
     if (!graph) {
-        std::cerr << "[LoopChecker Error] Graph is null while identifying back edges" << std::endl;
+        std::cerr
+            << "[LoopChecker Error] Graph is null while identifying back edges"
+            << std::endl;
         std::abort();
     }
 
@@ -66,7 +68,9 @@ void LoopChecker::OrganizeLoops() {
 
 void LoopChecker::ConstructLoopTree(Graph *graph) {
     if (!graph) {
-        std::cerr << "[LoopChecker Error] Graph is null while constructing loop tree" << std::endl;
+        std::cerr
+            << "[LoopChecker Error] Graph is null while constructing loop tree"
+            << std::endl;
         std::abort();
     }
 
@@ -109,7 +113,8 @@ void LoopChecker::DiscoverBackEdges(BB *bblock) {
 void LoopChecker::RecordLoopInfo(BB *header, BB *backEdgeSource) {
     Loop *loop = header->GetLoop();
     if (!loop) {
-        loop = new Loop(loops_.size(), header, IsLoopIrreducible(header, backEdgeSource));
+        loop = new Loop(loops_.size(), header,
+                        IsLoopIrreducible(header, backEdgeSource));
         loop->AddBB(header);
         loop->AddBackEdge(backEdgeSource);
         loops_.push_back(loop);
@@ -124,7 +129,9 @@ void LoopChecker::RecordLoopInfo(BB *header, BB *backEdgeSource) {
 
 void LoopChecker::ClassifyReducibleLoop(Loop *loop) {
     if (!loop) {
-        std::cerr << "[Loop Checker Error] Loop is null during reducible loop classification" << std::endl;
+        std::cerr << "[Loop Checker Error] Loop is null during reducible loop "
+                     "classification"
+                  << std::endl;
         std::abort();
     }
 
@@ -151,7 +158,8 @@ void LoopChecker::CollectLoopDetails(Loop *loop, BB *bblock, DFSColors color) {
 
     if (!blockLoop) {
         loop->AddBB(bblock);
-    } else if (blockLoop->GetId() != loop->GetId() && !blockLoop->GetOuterLoop()) {
+    } else if (blockLoop->GetId() != loop->GetId() &&
+               !blockLoop->GetOuterLoop()) {
         blockLoop->SetOuterLoop(loop);
         loop->AddInnerLoop(blockLoop);
     }

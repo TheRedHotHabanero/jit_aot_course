@@ -1,4 +1,5 @@
 #include "bb.h"
+#include "../domTree/loop.h"
 #include <algorithm>
 #include <cstdlib>
 #include <vector>
@@ -235,6 +236,10 @@ void BB::PrintSSA() {
         std::cout << "BB" << succ->GetId() << " "; // Print successor block IDs
     }
     std::cout << std::endl;
+}
+
+bool BB::IsLoopHeader() const {
+    return (loop_ != nullptr) && loop_->GetHeader() == this;
 }
 
 } // namespace ir

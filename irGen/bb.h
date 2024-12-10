@@ -80,6 +80,7 @@ class BB {
     bool Domites(const BB *bblock) const;
     Loop *GetLoop() { return loop_; }
     const Loop *GetLoop() const { return loop_; }
+    bool IsLoopHeader() const;
 
   public:
     void SetId(size_t id) { bbId_ = id; }

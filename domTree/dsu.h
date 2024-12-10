@@ -7,7 +7,7 @@
 #include <vector>
 
 namespace ir {
-class DSU  {
+class DSU {
   public:
     DSU() : labels_(nullptr), sdoms_(nullptr) {}
     DSU(std::vector<BB *> &labels, const std::vector<size_t> &sdoms)

@@ -39,7 +39,7 @@ the computation vertex by vertex in increasing order based on their labels.
 */
 
 namespace ir {
-class DomTreeBuilder  {
+class DomTreeBuilder {
   public:
     void Construct(Graph *graph);
 

@@ -28,7 +28,9 @@
 
 #include "input.h"
 #include "singleInstruction.h"
+#include <algorithm>
 #include <array>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
@@ -106,7 +108,12 @@ class VarInputsInstr : public InputsInstr {
     }
 
     std::vector<Input> &GetInputs() { return inputs_; }
+
     void AddInput(Input newInput) { inputs_.push_back(newInput); }
+    void RemoveInput(size_t idx) {
+        inputs_[idx] = inputs_.back();
+        inputs_.pop_back();
+    }
 
   private:
     std::vector<Input> inputs_;
@@ -199,6 +206,42 @@ class PhiInstr : public VarInputsInstr {
     template <typename... T>
     PhiInstr(InstType type, T... input)
         : VarInputsInstr(Opcode::PHI, type, input...) {}
+
+    std::vector<BB *> &GetSourceBBs() { return sourceBBs_; }
+    BB *GetSourceBB(size_t idx) {
+        assert(idx < sourceBBs_.size());
+        return sourceBBs_[idx];
+    }
+    void SetSourceBB(BB *inputSource, size_t idx) {
+        assert((inputSource) && idx < sourceBBs_.size());
+        sourceBBs_[idx] = inputSource;
+    }
+    size_t IndexOf(const BB *inputSource) const {
+        assert(inputSource);
+        return std::find(sourceBBs_.begin(), sourceBBs_.end(), inputSource) -
+               sourceBBs_.begin();
+    }
+    Input ResolveInput(BB *inputSource) {
+        return GetInput(IndexOf(inputSource));
+    }
+
+    void AddPhiInput(Input newInput, BB *inputSource) {
+        assert(inputSource);
+        AddInput(newInput);
+        sourceBBs_.push_back(inputSource);
+    }
+    void RemovePhiInput(BB *bblock) {
+        assert(bblock);
+        auto idx = IndexOf(bblock);
+        assert(idx < sourceBBs_.size());
+
+        sourceBBs_[idx] = sourceBBs_.back();
+        sourceBBs_.pop_back();
+        RemoveInput(idx);
+    }
+
+  private:
+    std::vector<BB *> sourceBBs_;
 };
 
 class InputArgInstr : public SingleInstruction {

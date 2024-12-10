@@ -34,3 +34,23 @@ Slide 1:
 Slide 2 (the same pic as for 2nd task), but example 3 is complex (Irreducible loop)
 <image src="task2.jpg">
 
+
+# Task 4
+1. Implement Linear order for your graph, based on recomendations from the paper
+2. Implement liveness analysis from the paper
+3. Create interfaces for getting live ranges and live intervals of a given instruction
+4. Create min 3 different non-empty (with instructions) graphs (with conditional branches and reducible loops!) for unit
+testing Linear Order and Liveness Analysis
+
+# Resources for task 4:
+[Linear Scan Register Allocation on SSA Form](http://www.christianwimmer.![alt text](image.png)at/Publications/Wimmer10a/)
+
+<image src="impl4.png">
+<image src="impl41.png">
+<image src="impl42.png">
+
+# Task 4 notes:
+
+Two common algorithms in modern compilers are graph coloring (see for example [5, 8]), which is suitable when compilation time is not a major concern, and !!!! linear scan [22, 28]!!!, which is faster and therefore frequently used for just-in-time compilers where compilation time adds to run time
+
+SSA - All variables have only a single point of definition.
