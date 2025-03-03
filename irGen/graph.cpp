@@ -14,7 +14,7 @@ void Graph::AddBB(BB *bb) {
         std::cout << "[Graph Error] BB went nullptr (AddBB)." << std::endl;
         std::abort();
     }
-    bb->SetId(BBs_.size()); // because it was the last one
+    bb->SetId(GetBBCount()); // because it was the last one
     BBs_.push_back(bb);
     bb->SetGraph(this);
 }
@@ -44,33 +44,6 @@ void Graph::AddBBBefore(BB *bb_before, BB *bb) {
     bb->AddSuccessors(bb_before);
 }
 
-// void Graph::AddBBAsSuccessor(BB *newBB, BB *bb) {
-//     if (bb == nullptr || newBB == nullptr) {
-//         std::cout << "[BB Error] BB or newBB went nullptr (AddBBAsSuccessor)"
-//                   << std::endl;
-//         std::abort();
-//     }
-//     if (newBB->GetGraph() != this || bb->GetGraph() == nullptr) {
-//         std::cout << "[Graph Error] GetGraph error in 'AddBBAsSuccessor'."
-//                   << std::endl;
-//         std::abort();
-//     }
-//     bb->SetGraph(this);
-//
-//     // end of the same part with pred
-//     for (auto *b : newBB->GetSuccessors()) {
-//         b->DeletePredecessors(newBB);
-//         b->AddPredecessors(bb);
-//         bb->AddSuccessors(b);
-//     }
-//     newBB->GetSuccessors().clear();
-//     newBB->AddSuccessors(bb);
-//     bb->AddPredecessors(newBB);
-//     if (lastBB_ == newBB) {
-//         lastBB_ = bb;
-//     }
-// }
-
 void Graph::SetBBAsDead(BB *bb) {
     if (bb == nullptr) {
         std::cout << "[Graph Error] BB went nullptr (SetBBAsDead)."
@@ -88,7 +61,7 @@ void Graph::SetBBAsDead(BB *bb) {
     }
     auto id = bb->GetId();
     // if (id >= BBs_->size() || BBs_[id] != bb) {
-    if (id >= BBs_.size()) {
+    if (id >= GetBBCount()) {
         std::cout << "[Graph Error] Error in 'SetBBAsDead'" << std::endl;
         std::abort();
     }
@@ -102,7 +75,7 @@ void Graph::SetBBAsDead(BB *bb) {
 }
 
 void Graph::CleanupUnusedBlocks() {
-    std::vector<BB *> activeBlocks;
+    ArenaVector<BB *> activeBlocks;
     activeBlocks.reserve(BBs_.size());
 
     // add alive blocks
@@ -142,5 +115,13 @@ void Graph::PrintSSA() {
         block->PrintSSA(); // Print each block in SSA format
     }
 }
+
+// defined here after full declaration of Graph methods
+BB::BB(Graph *graph)
+    : bbId_(INVALID_BB_ID),
+      predecessors_(graph->GetAllocator()->ToSTL()),
+      successors_(graph->GetAllocator()->ToSTL()),
+      graph_(graph),
+      dominated_(graph->GetAllocator()->ToSTL()) {}
 
 } // namespace ir

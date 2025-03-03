@@ -3,6 +3,7 @@
 
 #include "bb.h"
 #include "graph.h"
+#include "arena.h"
 #include <functional>
 #include <iostream>
 #include <set>
@@ -11,6 +12,8 @@
 namespace ir {
 
 using DFOCallback = std::function<void(BB *)>;
+using memory::ArenaSet;
+using memory::ArenaVector;
 
 class DFO {
   public:
@@ -21,11 +24,16 @@ class DFO {
             return;
         }
 
-        ResetVisited(); // Clear the visited set
+        if (!visited_) {
+            auto *allocator = graph->GetAllocator();
+            visited_ = allocator->template New<memory::ArenaSet<size_t>>(allocator->ToSTL());
+        } else {
+            ResetVisited();
+        }
         ExecuteDFS(graph->GetFirstBB(), callback);
 
         // Verify the number of visited blocks
-        if (visited_.size() != graph->GetBBCount()) {
+        if (visited_->size() != graph->GetBBCount()) {
             HandleError(
                 "Visited blocks count does not match graph's block count.");
         }
@@ -41,17 +49,17 @@ class DFO {
     }
 
   private:
-    std::set<size_t> visited_; // Set of visited basic blocks
+    memory::ArenaSet<size_t> *visited_ = nullptr; // Set of visited basic blocks
 
     // Reset the visited set for a new traversal
-    void ResetVisited() { visited_.clear(); }
+    void ResetVisited() { visited_->clear(); }
 
     // Recursive function to perform depth-first search on the basic blocks
     void ExecuteDFS(BB *bblock, DFOCallback callback) {
         if (!IsBlockValid(bblock))
             return; // Validate the block
 
-        visited_.insert(bblock->GetId()); // Mark the block as visited
+        visited_->insert(bblock->GetId()); // Mark the block as visited
 
         // Visit all successors of the current block
         for (auto *successor : bblock->GetSuccessors()) {
@@ -75,7 +83,7 @@ class DFO {
 
     // Check if a block has been visited
     bool HasBeenVisited(BB *bblock) {
-        return visited_.find(bblock->GetId()) != visited_.end();
+        return visited_->find(bblock->GetId()) != visited_->end();
     }
 
     // Handle errors by printing the message and aborting
@@ -86,14 +94,14 @@ class DFO {
 };
 
 // Function to get the Reverse Post Order (RPO) of the graph
-std::vector<BB *> RPO(Graph *graph) {
+inline ArenaVector<BB *> RPO(Graph *graph) {
     DFO dfo;
     if (!dfo.IsGraphValid(graph))
         return {}; // Check graph validity and return empty if invalid
-
-    std::vector<BB *> result;            // Vector to hold the RPO
+    
+    ArenaVector<BB *> result(graph->GetAllocator()->ToSTL());            // Vector to hold the RPO
     result.reserve(graph->GetBBCount()); // Reserve space for the result
-
+    
     dfo.ValidateGraph(graph, [&result](BB *bblock) {
         result.push_back(bblock); // Collect blocks in DFO
     });

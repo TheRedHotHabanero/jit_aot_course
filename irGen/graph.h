@@ -15,14 +15,19 @@
 #define JIT_AOT_COURSE_IR_GEN_GRAPH_H_
 
 #include "bb.h"
+#include "domTree/arena.h"
+#include "helperBuilderFunctions.h"
 #include <vector>
 namespace ir {
-
+using memory::ArenaAllocator;
+using memory::ArenaVector;
 class Loop;
 
 class Graph {
   public:
-    Graph() : firstBB_(nullptr), lastBB_(nullptr), loopTreeRoot_(nullptr) {}
+    Graph(ArenaAllocator *allocator, InstructionBuilder* instrBuilder) : allocator_(allocator), firstBB_(nullptr), 
+      lastBB_(nullptr), BBs_(allocator_->ToSTL()), loopTreeRoot_(nullptr), instrBuilder_(instrBuilder)  {}
+
     Graph &operator=(const Graph &) = delete;
     Graph(const Graph &) = delete;
     Graph(Graph &&) = delete;
@@ -34,10 +39,11 @@ class Graph {
     BB *GetLastBB() { return lastBB_; }
     void SetFirstBB(BB *bb) { firstBB_ = bb; }
     void SetLastBB(BB *bb) { lastBB_ = bb; }
-    std::vector<BB *> GetBBs() { return BBs_; }
+    ArenaVector<BB *> GetBBs() { return BBs_; }
     Loop *GetLoopTree() { return loopTreeRoot_; }
     const Loop *GetLoopTree() const { return loopTreeRoot_; }
-
+    ArenaAllocator *GetAllocator() const { return allocator_; }
+    InstructionBuilder *GetInstructionBuilder() { return instrBuilder_; }
   public:
     void AddBB(BB *bb);
     void SetBBAsDead(BB *bb);
@@ -54,10 +60,12 @@ class Graph {
     bool IsEmpty() const { return BBs_.empty(); }
 
   private:
+    ArenaAllocator *allocator_;
     BB *firstBB_;
     BB *lastBB_;
-    std::vector<BB *> BBs_;
+    memory::ArenaVector<BB *> BBs_;
     Loop *loopTreeRoot_;
+    InstructionBuilder *instrBuilder_;
 };
 } // namespace ir
 

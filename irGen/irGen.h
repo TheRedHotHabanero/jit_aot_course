@@ -3,29 +3,39 @@
 
 #include "bb.h"
 #include "graph.h"
+#include "domTree/arena.h"
 #include <vector>
+#include <cassert>
 
 namespace ir {
 class Graph;
 
 class IRGenerator {
   public:
-    IRGenerator() : graph_(nullptr) {}
+    IRGenerator() = delete;
+    IRGenerator(ArenaAllocator *const alloc) :
+          allocator_(alloc),
+          BBs_(alloc->ToSTL())
+    {
+        assert(allocator_);
+    }
     ~IRGenerator() noexcept { Clear(); }
 
   public:
     void CreateGraph() {
-        if (graph_ == nullptr) {
-            graph_ = new Graph();
-        }
+        assert(graph_ == nullptr);
+        auto *instrBuilder = allocator_->template New<InstructionBuilder>(allocator_);
+        graph_ = allocator_->template New<Graph>(allocator_, instrBuilder);
+        return;
     }
     BB *CreateEmptyBB();
-    Graph *GetGraph() const { return graph_; }
+    Graph *GetGraph() { return graph_; }
     void Clear() noexcept;
 
   private:
-    std::vector<BB *> BBs_;
-    Graph *graph_;
+    ArenaAllocator *allocator_ = nullptr;
+    memory::ArenaVector<BB *> BBs_;
+    Graph *graph_ = nullptr;
 };
 
 } // namespace ir

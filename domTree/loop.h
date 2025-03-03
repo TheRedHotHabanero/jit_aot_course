@@ -2,48 +2,69 @@
 #define JIT_AOT_COMPILERS_DOMTREE_LOOP_H_
 
 #include "bb.h"
+#include "arena.h"
 #include <algorithm>
 #include <vector>
 
 namespace ir {
 
+using memory::ArenaAllocator;
+using memory::ArenaVector;
+
 enum class DFSColors : uint32_t { WHITE = 0, GREY, BLACK, COLORS_SIZE = BLACK };
 
 class Loop {
   public:
-    Loop(size_t id, BB *header, bool isIrreducible, bool isRoot = false);
+    Loop(size_t id,
+      BB *header,
+      bool isIrreducible,
+      ArenaAllocator *const allocator,
+      bool isRoot = false) : id_(id),
+      header_(header),
+      backEdges_(allocator->ToSTL()),
+      basicBlocks_(allocator->ToSTL()),
+      outerLoop_(nullptr),
+      innerLoops_(allocator->ToSTL()),
+      isIrreducible_(isIrreducible),
+      isRoot_(isRoot) {}
 
     size_t GetId() const;
     BB *GetHeader();
     const BB *GetHeader() const;
 
     void AddBackEdge(BB *backEdgeSource);
-    std::vector<BB *> GetBackEdges();
-    const std::vector<BB *> &GetBackEdges() const;
+    ArenaVector<BB *> GetBackEdges();
 
-    std::vector<BB *> GetBasicBlocks();
-    const std::vector<BB *> &GetBasicBlocks() const;
+    ArenaVector<BB *> GetBasicBlocks();
 
     void AddBB(BB *bblock);
 
     Loop *GetOuterLoop();
-    const Loop *GetOuterLoop() const;
     void SetOuterLoop(Loop *loop);
 
-    const std::vector<Loop *> &GetInnerLoops() const;
+    const ArenaVector<Loop *> &GetInnerLoops() const;
     void AddInnerLoop(Loop *loop);
 
     void SetIrreducibility(bool isIrr);
     bool IsIrreducible() const;
     bool IsRoot() const;
 
+    void operator delete([[maybe_unused]] void *unused1, [[maybe_unused]] void *unused2) noexcept {}    \
+    void *operator new([[maybe_unused]] size_t size) = delete;                                          \
+    void operator delete([[maybe_unused]] void *unused, [[maybe_unused]] size_t size) {                 \
+        std::cerr << "UNREACHABLE" << std::endl;                                                                                \
+    }                                                                                                   \
+    void *operator new([[maybe_unused]] size_t size, void *ptr) noexcept {                              \
+        return ptr;                                                                                     \
+    }
+
   private:
     size_t id_;
     BB *header_;
-    std::vector<BB *> backEdges_;
-    std::vector<BB *> basicBlocks_;
+    ArenaVector<BB *> backEdges_;
+    ArenaVector<BB *> basicBlocks_;
     Loop *outerLoop_;
-    std::vector<Loop *> innerLoops_;
+    ArenaVector<Loop *> innerLoops_;
     bool isIrreducible_;
     bool isRoot_;
 };

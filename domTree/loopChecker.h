@@ -11,12 +11,13 @@ class LoopChecker {
     void VerifyGraphLoops(Graph *graph);
 
   private:
-    void InitializeLoopStructures(size_t bblocksCount);
+    void InitializeLoopStructures(Graph *graph);
     void IdentifyBackEdges(Graph *graph);
     void OrganizeLoops();
     void ConstructLoopTree(Graph *graph);
-    void DiscoverBackEdges(BB *bblock);
-    void RecordLoopInfo(BB *header, BB *backEdgeSource);
+    void DiscoverBackEdges(BB *bblock, ArenaAllocator *const allocator);
+    void RecordLoopInfo(BB *header, BB *backEdgeSource,
+                     ArenaAllocator *const allocator);
     void ClassifyReducibleLoop(Loop *loop);
     void CollectLoopDetails(Loop *loop, BB *bblock, DFSColors color);
 
@@ -25,11 +26,11 @@ class LoopChecker {
     }
 
   private:
-    uint32_t colorCounter_;
-    std::vector<DFSColors> dfsColors_;
-    size_t blockId_;
-    std::vector<BB *> dfsBlocks_;
-    std::vector<Loop *> loops_;
+    uint32_t colorCounter_ = 0;
+    ArenaVector<DFSColors> *dfsColors_ = nullptr;
+    size_t blockId_ = 0;
+    ArenaVector<BB *> *dfsBlocks_ = nullptr;
+    ArenaVector<Loop *> *loops_ = nullptr;
 };
 
 } // namespace ir
