@@ -94,6 +94,7 @@ class BB {
                                 SingleInstruction *currentInstr);
     void SetGraph(Graph *newGraph) { graph_ = newGraph; }
     void SetInstructionAsDead(SingleInstruction *inst);
+    void ReplaceInstruction(SingleInstruction *oldInst, SingleInstruction *newInst);
     void PushInstForward(SingleInstruction *instr);
     void PushInstBackward(SingleInstruction *instr);
 

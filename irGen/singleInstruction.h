@@ -31,6 +31,7 @@
 #include <cstdint>
 #include <iostream>
 #include <vector>
+#include "input.h"
 namespace ir {
 class BB;
 
@@ -38,6 +39,11 @@ enum class InstType { i8, i16, i32, i64, u8, u16, u32, u64, VOID, INVALID };
 
 enum class Opcode {
     MUL,
+    MULI,
+    SHR,
+    SHRI,
+    XOR,
+    XORI,
     ADDI,
     CAST, // Type1 as type2
     CMP,
@@ -52,9 +58,10 @@ enum class Opcode {
 
 static constexpr std::array<const char *,
                             static_cast<size_t>(Opcode::INVALID) + 1>
-    nameOpcode{"MUL", "ADDI", "MOVI", "CAST",   "CMP",
+    nameOpcode{"MUL", "MULI", "SHR", "SHRI", "XOR", "XORI", "ADDI", "MOVI", "CAST",   "CMP",
                "JA",  "JMP",  "RET",  "INVALID"};
 
+class ConstInstr;
 class SingleInstruction {
   public:
     SingleInstruction(Opcode opcode, InstType type)
@@ -73,12 +80,14 @@ class SingleInstruction {
     BB *instBB_;
     InstType instType_;
     size_t instID_;
+    std::vector<Input *> inputs_;
 
   public:
     // getters
     size_t GetInstID() const { return instID_; }
     SingleInstruction *GetPrevInst() { return prevInst_; }
     SingleInstruction *GetNextInst() { return nextInst_; }
+    ConstInstr *CastToConstant();
     BB *GetInstBB() const { return instBB_; }
     Opcode GetOpcode() const { return opcode_; }
     const char *GetOpcodeName(Opcode opcode) const;
@@ -86,6 +95,34 @@ class SingleInstruction {
     bool IsInputArgument() const { return opcode_ == Opcode::ARG; }
     bool IsPhi() const { return opcode_ == Opcode::PHI; }
     static const size_t INVALID_ID = static_cast<size_t>(0) - 1;
+    Input *GetInput(size_t idx) { return inputs_.at(idx); }
+
+    void SetInput(Input *newInput, size_t idx) {
+        inputs_.at(idx) = newInput;
+    }
+    
+    std::vector<Input *> &GetInputs() { return inputs_; }
+    bool IsConst() const {
+      return GetOpcode() == Opcode::CONST;
+    }
+
+    void ReplaceWith(SingleInstruction *new_inst) {
+        if (prevInst_) {
+            prevInst_->SetNextInst(new_inst);
+        }
+
+        if (nextInst_) {
+            nextInst_->SetPrevInst(new_inst);
+        }
+    
+        new_inst->SetPrevInst(prevInst_);
+        new_inst->SetNextInst(nextInst_);
+        
+        new_inst->SetBB(instBB_);
+
+        RemoveFromBlock();
+    }
+    
 
   public:
     // setters

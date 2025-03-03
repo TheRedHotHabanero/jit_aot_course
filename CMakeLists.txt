@@ -25,6 +25,7 @@ include_directories(${CMAKE_SOURCE_DIR})
 
 add_subdirectory(irGen)
 add_subdirectory(domTree)
+add_subdirectory(optimizations)
 add_subdirectory(tests)
 
 # --------------------------clang-format--------------------------------------

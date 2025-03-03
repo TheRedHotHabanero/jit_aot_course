@@ -84,6 +84,29 @@ void BB::SetInstructionAsDead(SingleInstruction *inst) {
     }
 }
 
+void BB::ReplaceInstruction(SingleInstruction *oldInst, SingleInstruction *newInst) {
+    if (firstInstBB_ == oldInst) {
+        firstInstBB_ = newInst;
+    }
+
+    if (lastInstBB_ == oldInst) {
+        lastInstBB_ = newInst;
+    }
+
+    SingleInstruction *currentInst = firstInstBB_;
+    while (currentInst != nullptr) {
+        if (currentInst == oldInst) {
+            currentInst = newInst;
+            break;
+        }
+        currentInst = currentInst->GetNextInst();
+    }
+
+    oldInst->ReplaceWith(newInst);
+    newInst->SetBB(this);
+    SetInstructionAsDead(oldInst);
+}
+
 void BB::InsertSingleInstrBefore(SingleInstruction *instToMove,
                                  SingleInstruction *currentInstr) {
     // PrevInst  →  instToMove  →  NextInst

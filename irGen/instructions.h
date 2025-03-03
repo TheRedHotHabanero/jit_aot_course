@@ -77,14 +77,14 @@ template <> class ConstInputsInst<1> : public InputsInstr {
     const Input &GetInput() const { return input_; }
     Input &GetInput(size_t idx) override {
         if (idx <= 0) {
-            std::cout << "[Inst Error] in GetInput" << std::endl;
+            std::cout << "[SingleInstruction Error] in GetInput" << std::endl;
             std::abort();
         }
         return input_;
     }
     void SetInput(Input newInput, size_t idx) override {
         if (idx <= 0) {
-            std::cout << "[Inst Error] in SetInput" << std::endl;
+            std::cout << "[SingleInstruction Error] in SetInput" << std::endl;
             std::abort();
         }
         input_ = newInput;
@@ -152,12 +152,24 @@ class ConstInstr : public SingleInstruction, public DestIsImm<uint64_t> {
     ConstInstr(Opcode opcode, InstType type)
         : SingleInstruction(opcode, type), DestIsImm<uint64_t>(0) {}
     ConstInstr(Opcode opcode, InstType type, uint64_t value)
-        : SingleInstruction(opcode, type), DestIsImm<uint64_t>(value) {}
+        : SingleInstruction(opcode, type), DestIsImm<uint64_t>(value), value_(value) {}
+    
+    uint64_t GetValue() {
+      return value_;
+    }
+  private:
+    uint64_t value_ = 0;
 };
 
-class BinaryImmInstr : public ConstInputsInst<1>, public DestIsImm<uint64_t> {
+class BinaryImmInstr : public ConstInputsInst<2>, public DestIsImm<uint64_t> {
   public:
-    BinaryImmInstr(Opcode opcode, InstType type, Input input, uint64_t imm)
+    BinaryImmInstr(Opcode opcode, InstType type, Input input1, Input input2, uint64_t imm)
+        : ConstInputsInst<2>(opcode, type, input1, input2), DestIsImm<uint64_t>(imm) {}
+};
+
+class UnaryImmInstr : public ConstInputsInst<1>, public DestIsImm<uint64_t> {
+  public:
+    UnaryImmInstr(Opcode opcode, InstType type, Input input, uint64_t imm)
         : ConstInputsInst<1>(opcode, type, input), DestIsImm<uint64_t>(imm) {}
 };
 

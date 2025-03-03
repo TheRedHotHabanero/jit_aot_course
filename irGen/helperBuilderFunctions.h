@@ -58,9 +58,60 @@ class InstructionBuilder {
     TwoRegInst *BuildAddi(InstType type, Input input, T immediate) {
         auto *constInstr = new ConstInstr(
             Opcode::CONST, type,
-            static_cast<uint64_t>(immediate)); // Используем ConstInstr
-        Input immInput = Input(constInstr); // Оборачиваем в Input
+            static_cast<uint64_t>(immediate)); // using ConstInstr
+        Input immInput = Input(constInstr); // wrap
         auto *inst = new TwoRegInst(Opcode::ADDI, type, input, immInput);
+        instructions_.push_back(inst);
+        inst->SetInstId(instructions_.size());
+        return inst;
+    }
+
+    template <typename T,
+    typename = std::enable_if_t<
+        std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> ||
+        std::is_same_v<T, int32_t> || std::is_same_v<T, int64_t> ||
+        std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t> ||
+        std::is_same_v<T, uint32_t> || std::is_same_v<T, uint64_t>>>
+    TwoRegInst *BuildMuli(InstType type, Input input, T immediate) {
+        auto *constInstr = new ConstInstr(
+            Opcode::CONST, type,
+            static_cast<uint64_t>(immediate)); // using ConstInstr
+        Input immInput = Input(constInstr); // wrap
+        auto *inst = new TwoRegInst(Opcode::MULI, type, input, immInput);
+        instructions_.push_back(inst);
+        inst->SetInstId(instructions_.size());
+        return inst;
+    }
+
+    template <typename T,
+    typename = std::enable_if_t<
+        std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> ||
+        std::is_same_v<T, int32_t> || std::is_same_v<T, int64_t> ||
+        std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t> ||
+        std::is_same_v<T, uint32_t> || std::is_same_v<T, uint64_t>>>
+    TwoRegInst *BuildXori(InstType type, Input input, T immediate) {
+        auto *constInstr = new ConstInstr(
+            Opcode::CONST, type,
+            static_cast<uint64_t>(immediate));
+        Input immInput = Input(constInstr);
+        auto *inst = new TwoRegInst(Opcode::XORI, type, input, immInput);
+        instructions_.push_back(inst);
+        inst->SetInstId(instructions_.size());
+        return inst;
+    }
+
+    template <typename T,
+    typename = std::enable_if_t<
+        std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> ||
+        std::is_same_v<T, int32_t> || std::is_same_v<T, int64_t> ||
+        std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t> ||
+        std::is_same_v<T, uint32_t> || std::is_same_v<T, uint64_t>>>
+    TwoRegInst *BuildShri(InstType type, Input input, T immediate) {
+        auto *constInstr = new ConstInstr(
+            Opcode::CONST, type,
+            static_cast<uint64_t>(immediate)); // using ConstInstr
+        Input immInput = Input(constInstr); // wrap
+        auto *inst = new TwoRegInst(Opcode::SHRI, type, input, immInput);
         instructions_.push_back(inst);
         inst->SetInstId(instructions_.size());
         return inst;
@@ -132,6 +183,20 @@ class InstructionBuilder {
 
     InputArgInstr *BuildArg(InstType type) {
         auto *inst = new InputArgInstr(type);
+        instructions_.push_back(inst);
+        inst->SetInstId(instructions_.size());
+        return inst;
+    }
+
+    TwoRegInst *BuildShr(InstType type, Input input1, Input input2) {
+        auto *inst = new TwoRegInst(Opcode::SHR, type, input1, input2);
+        instructions_.push_back(inst);
+        inst->SetInstId(instructions_.size());
+        return inst;
+    }
+
+    TwoRegInst *BuildXor(InstType type, Input input1, Input input2) {
+        auto *inst = new TwoRegInst(Opcode::XOR, type, input1, input2);
         instructions_.push_back(inst);
         inst->SetInstId(instructions_.size());
         return inst;
