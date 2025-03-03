@@ -1,14 +1,9 @@
 #include "domTree.h"
-#include "irGen.h"
-#include "gtest/gtest.h"
+#include "testBase.h"
+#include <iostream>
+
 namespace ir::tests {
-class DomTreeTest : public ::testing::Test {
-  public:
-    virtual void SetUp() { irGenerator.CreateGraph(); }
-    DomTreeTest() = default;
-    virtual void TearDown() { irGenerator.Clear(); }
-    IRGenerator irGenerator;
-    DomTreeBuilder domTreeBuilder;
+class DomTreeTest : public TestBase {
 };
 static void checkDominatedBBs(BB *bblock, const std::vector<BB *> &expected) {
     ASSERT_NE(bblock, nullptr);
@@ -23,12 +18,13 @@ static void checkDominatedBBs(BB *bblock, const std::vector<BB *> &expected) {
         ASSERT_EQ(dominated[i], expected[i]);
     }
 }
+
 TEST_F(DomTreeTest, TestBuilding1) {
     std::vector<BB *> bblocks(7);
     for (auto &it : bblocks) {
-        it = irGenerator.CreateEmptyBB();
+        it = GetIRGenerator().CreateEmptyBB();
     }
-    auto *graph = irGenerator.GetGraph();
+    auto *graph = GetIRGenerator().GetGraph();
     graph->SetFirstBB(bblocks[0]);
     graph->ConnectBBs(bblocks[0], bblocks[1]);
     graph->ConnectBBs(bblocks[1], bblocks[2]);
@@ -38,6 +34,7 @@ TEST_F(DomTreeTest, TestBuilding1) {
     graph->ConnectBBs(bblocks[5], bblocks[4]);
     graph->ConnectBBs(bblocks[5], bblocks[6]);
     graph->ConnectBBs(bblocks[6], bblocks[3]);
+    DomTreeBuilder domTreeBuilder;
     domTreeBuilder.Construct(graph);
     // check dominators
     std::vector<BB *> expectedDominators{nullptr,    bblocks[0], bblocks[1],
@@ -55,12 +52,13 @@ TEST_F(DomTreeTest, TestBuilding1) {
         checkDominatedBBs(bblocks[i], expectedDominatedBlocks[i]);
     }
 }
+
 TEST_F(DomTreeTest, TestBuilding2) {
     std::vector<BB *> bblocks(11);
     for (auto &it : bblocks) {
-        it = irGenerator.CreateEmptyBB();
+        it = GetIRGenerator().CreateEmptyBB();
     }
-    auto *graph = irGenerator.GetGraph();
+    auto *graph = GetIRGenerator().GetGraph();
     graph->SetFirstBB(bblocks[0]);
     for (size_t i = 0; i < 7; ++i) {
         graph->ConnectBBs(bblocks[i], bblocks[i + 1]);
@@ -72,6 +70,7 @@ TEST_F(DomTreeTest, TestBuilding2) {
     graph->ConnectBBs(bblocks[9], bblocks[2]);
     graph->ConnectBBs(bblocks[6], bblocks[8]);
     graph->ConnectBBs(bblocks[8], bblocks[10]);
+    DomTreeBuilder domTreeBuilder;
     domTreeBuilder.Construct(graph);
     // check dominators
     std::vector<BB *> expectedDominators{
@@ -93,12 +92,13 @@ TEST_F(DomTreeTest, TestBuilding2) {
         checkDominatedBBs(bblocks[i], expectedDominatedBlocks[i]);
     }
 }
+
 TEST_F(DomTreeTest, TestBuilding3) {
     std::vector<BB *> bblocks(9);
     for (auto &it : bblocks) {
-        it = irGenerator.CreateEmptyBB();
+        it = GetIRGenerator().CreateEmptyBB();
     }
-    auto *graph = irGenerator.GetGraph();
+    auto *graph = GetIRGenerator().GetGraph();
     graph->SetFirstBB(bblocks[0]);
     for (size_t i = 0; i < 3; ++i) {
         graph->ConnectBBs(bblocks[i], bblocks[i + 1]);
@@ -113,6 +113,7 @@ TEST_F(DomTreeTest, TestBuilding3) {
     graph->ConnectBBs(bblocks[3], bblocks[6]);
     graph->ConnectBBs(bblocks[6], bblocks[2]);
     graph->ConnectBBs(bblocks[6], bblocks[8]);
+    DomTreeBuilder domTreeBuilder;
     domTreeBuilder.Construct(graph);
     // check dominators
     std::vector<BB *> expectedDominators{nullptr,    bblocks[0], bblocks[1],

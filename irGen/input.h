@@ -19,7 +19,8 @@ class Input  {
     SingleInstruction *GetInstruction() { return instr_; }
     const SingleInstruction *GetInstruction() const { return instr_; }
     void SetInstruction(SingleInstruction *newInstr) { instr_ = newInstr; }
-
+    SingleInstruction *operator->() { return instr_; }
+    const SingleInstruction *operator->() const { return instr_; }
   private:
     SingleInstruction *instr_;
 };

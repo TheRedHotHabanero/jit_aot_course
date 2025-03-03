@@ -48,7 +48,7 @@ const char *SingleInstruction::GetOpcodeName(Opcode opcode) const {
 
 void SingleInstruction::RemoveFromBlock() {
     if (instBB_ == nullptr) {
-        std::cout << "[Inst Error] Nullptr in BB containing current inst "
+        std::cout << "[SingleInstruction Error] Nullptr in BB containing current inst "
                      "(RemoveFromBlock)."
                   << std::endl;
         std::abort();
@@ -59,7 +59,7 @@ void SingleInstruction::RemoveFromBlock() {
 void SingleInstruction::InsertInstBefore(SingleInstruction *inst) {
     if (instBB_ == nullptr) {
         std::cout
-            << "[Inst Error] Nullptr BB while trying inserting inst before."
+            << "[SingleInstruction Error] Nullptr BB while trying inserting inst before."
             << std::endl;
         std::abort();
     }
@@ -69,11 +69,18 @@ void SingleInstruction::InsertInstBefore(SingleInstruction *inst) {
 void SingleInstruction::InsertInstAfter(SingleInstruction *inst) {
     if (instBB_ == nullptr) {
         std::cout
-            << "[Inst Error] Nullptr BB while trying inserting inst after."
+            << "[SingleInstruction Error] Nullptr BB while trying inserting inst after."
             << std::endl;
         std::abort();
     }
     instBB_->InsertSingleInstrAfter(inst, this);
+}
+class ConstInstr;
+ConstInstr *SingleInstruction::CastToConstant() {
+    if (GetOpcode() != Opcode::CONST) {
+        std::cerr << "Non-const inst for CastToConstant!!" << std::endl;
+    }
+    return static_cast<ConstInstr *>(this);
 }
 
 void SingleInstruction::PrintSSA() {

@@ -1,24 +1,18 @@
+#include "testBase.h"
 #include "dfo_rpo.h"
-#include "irGen.h"
-#include "gtest/gtest.h"
+#include <iostream>
 
 namespace ir::tests {
-
-class dfoRpoTest : public ::testing::Test {
-
-  public:
-    virtual void SetUp() { irGenerator.CreateGraph(); }
-    dfoRpoTest() = default;
-    virtual void TearDown() { irGenerator.Clear(); }
-    IRGenerator irGenerator;
+class dfoRpoTest : public TestBase {
 };
 
+
 TEST_F(dfoRpoTest, TestDFO) {
-    auto *blockA = irGenerator.CreateEmptyBB();
-    auto *blockB = irGenerator.CreateEmptyBB();
-    auto *blockC = irGenerator.CreateEmptyBB();
-    auto *blockD = irGenerator.CreateEmptyBB();
-    auto *graph = irGenerator.GetGraph();
+    auto *blockA = GetIRGenerator().CreateEmptyBB();
+    auto *blockB = GetIRGenerator().CreateEmptyBB();
+    auto *blockC = GetIRGenerator().CreateEmptyBB();
+    auto *blockD = GetIRGenerator().CreateEmptyBB();
+    auto *graph = GetIRGenerator().GetGraph();
     graph->SetFirstBB(blockA);
     graph->ConnectBBs(blockA, blockB);
     graph->ConnectBBs(blockA, blockC);
@@ -39,11 +33,11 @@ TEST_F(dfoRpoTest, TestDFO) {
 
 TEST_F(dfoRpoTest, TestRPO) {
     // create graph
-    auto *blockA = irGenerator.CreateEmptyBB();
-    auto *blockB = irGenerator.CreateEmptyBB();
-    auto *blockC = irGenerator.CreateEmptyBB();
-    auto *blockD = irGenerator.CreateEmptyBB();
-    auto *graph = irGenerator.GetGraph();
+    auto *blockA = GetIRGenerator().CreateEmptyBB();
+    auto *blockB = GetIRGenerator().CreateEmptyBB();
+    auto *blockC = GetIRGenerator().CreateEmptyBB();
+    auto *blockD = GetIRGenerator().CreateEmptyBB();
+    auto *graph = GetIRGenerator().GetGraph();
     graph->SetFirstBB(blockA);
     graph->ConnectBBs(blockA, blockB);
     graph->ConnectBBs(blockA, blockC);

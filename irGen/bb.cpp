@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <vector>
+#include <cassert>
 namespace ir {
 
 // const size_t BB::INVALID_BB_ID;
@@ -82,8 +83,39 @@ void BB::SetInstructionAsDead(SingleInstruction *inst) {
     } else {
         lastInstBB_ = tmpPrev;
     }
+
+    if (inst == firstPhiBB_) {
+        firstPhiBB_ = nullptr;
+    }
+    size_ -= 1;
+
 }
 
+
+void BB::ReplaceInstruction(SingleInstruction *prevInstr, SingleInstruction *newInstr) {
+    ReplaceInDataFlow(prevInstr, newInstr);
+    replaceInControlFlow(prevInstr, newInstr);
+}
+
+void BB::ReplaceInDataFlow(SingleInstruction *prevInstr, SingleInstruction *newInstr) {
+    newInstr->AddUsers(prevInstr->GetUsers());
+    for (auto &it : prevInstr->GetUsers()) {
+        auto *typed = static_cast<InputsInstr *>(it);
+        typed->ReplaceInput(prevInstr, newInstr);
+    }
+}
+
+void BB::replaceInControlFlow(SingleInstruction *prevInstr, SingleInstruction *newInstr) {
+    assert((prevInstr) && (prevInstr->GetInstBB() == this));
+    if (prevInstr->GetPrevInst()) {
+        InsertSingleInstrAfter(prevInstr->GetPrevInst(), newInstr);
+    } else if (prevInstr->GetNextInst()) {
+        InsertSingleInstrBefore(prevInstr->GetNextInst(), newInstr);
+    } else {
+        PushInstForward(newInstr);
+    }
+    SetInstructionAsDead(prevInstr);
+}
 void BB::InsertSingleInstrBefore(SingleInstruction *instToMove,
                                  SingleInstruction *currentInstr) {
     // PrevInst  →  instToMove  →  NextInst
@@ -114,11 +146,11 @@ void BB::InsertSingleInstrBefore(SingleInstruction *instToMove,
     if (!tmpPrev) {
         firstInstBB_ = currentInstr;
     }
+    size_ += 1;
 }
 
 void BB::InsertSingleInstrAfter(SingleInstruction *instToInsert,
                                 SingleInstruction *currentInstr) {
-    std::cout << "here" << std::endl;
     if (instToInsert == nullptr || currentInstr == nullptr) {
         std::cout << "[BB Error] One of instructions went nullptr "
                      "(InsertSingleInstrAfter)"
@@ -136,11 +168,14 @@ void BB::InsertSingleInstrAfter(SingleInstruction *instToInsert,
     auto *tmpNext = instToInsert->GetNextInst();
     instToInsert->SetNextInst(currentInstr);
     currentInstr->SetPrevInst(instToInsert);
-    currentInstr->SetNextInst(lastInstBB_);
+    // currentInstr->SetNextInst(lastInstBB_);
+    currentInstr->SetNextInst(tmpNext);
+    tmpNext->SetPrevInst(currentInstr);
 
     if (!tmpNext) {
         lastInstBB_ = currentInstr;
     }
+    size_ += 1;
 }
 
 void BB::PushInstForward(SingleInstruction *instr) {
@@ -164,6 +199,7 @@ void BB::PushInstForward(SingleInstruction *instr) {
         firstInstBB_->SetPrevInst(instr);
         firstInstBB_ = instr;
     }
+    size_ += 1;
 }
 
 void BB::PushInstBackward(SingleInstruction *instr) {
@@ -185,6 +221,7 @@ void BB::PushInstBackward(SingleInstruction *instr) {
         lastInstBB_->SetNextInst(instr);
         lastInstBB_ = instr;
     }
+    size_ += 1;
 }
 
 void BB::PushPhi(SingleInstruction *instr) {

@@ -3,7 +3,9 @@
 
 #include "dsu.h"
 #include "graph.h"
+#include "arena.h"
 #include <vector>
+#include <cassert>
 
 /*
 Algorithm description based on the reference in the README:
@@ -44,31 +46,82 @@ class DomTreeBuilder  {
     void Construct(Graph *graph);
 
     // Retrieves the immediate dominators for the blocks
-    const std::vector<BB *> &GetImmediateDominators() const { return immDoms_; }
+    const ArenaVector<BB *> *GetImmediateDominators() const { return immDoms_; }
 
   private:
     // Initializes internal structures based on the number of basic blocks
-    void InitializeStructures(size_t blockCount);
+    DSU InitializeStructures(Graph *graph);
 
     // Analyzes the specified basic block using DFS
     void PerformDFS(BB *block);
 
     // Calculates semi-dominators for all blocks
-    void DeriveSemiDominators();
+    void DeriveSemiDominators(DSU &sdomsHelper);
 
     // Calculates immediate dominators for all blocks
     void DeriveImmediateDominators();
 
+    size_t getSize() const {
+      return immDoms_->size();
+    }
+
+    BB *getImmDominator(size_t id) {
+        return immDoms_->at(id);
+    }
+    void setImmDominator(size_t id, BB *bblock) {
+        immDoms_->at(id) = bblock;
+    }
+
+    size_t getSemiDomNumber(BB *bblock) {
+        assert(bblock);
+        return semiDoms_->at(bblock->GetId());
+    }
+    void setSemiDomNumber(BB *bblock, size_t visitNumber) {
+        assert(bblock);
+        semiDoms_->at(bblock->GetId()) = visitNumber;
+    }
+
+    const ArenaVector<BB *> &getSemiDoms(BB *bblock) {
+        assert(bblock);
+        return semiDomSet_->at(bblock->GetId());
+    }
+    void registerSemiDom(BB *bblock) {
+        auto semiDomNumber = getSemiDomNumber(bblock);
+        semiDomSet_->at(getOrderedBlock(semiDomNumber)->GetId()).push_back(bblock);
+    }
+
+    BB *getLabel(BB *bblock) {
+        assert(bblock);
+        return nodeLabels_->at(bblock->GetId());
+    }
+
+    BB *getOrderedBlock(size_t visitNumber) {
+        return orderedBlocks_->at(visitNumber);
+    }
+    void setOrderedBlock(size_t visitNumber, BB *bblock) {
+        assert(bblock);
+        orderedBlocks_->at(visitNumber) = bblock;
+    }
+
+    BB *getBlockDFOParent(BB *bblock) {
+        assert(bblock);
+        return blockAncestors_->at(bblock->GetId());
+    }
+    void setBlockDFOParent(BB *child, BB *parent) {
+        assert(child);
+        assert(parent);
+        blockAncestors_->at(child->GetId()) = parent;
+    }
+
     // Member variables
-    int lastVisited_;              // Last visited vertex count during DFS
-    DSU semiDomHelper_;            // DSU for semi-doms
-    std::vector<BB *> immDoms_;    // List of imm doms
-    std::vector<size_t> semiDoms_; // Semi-doms for each block
-    std::vector<std::vector<BB *>> semiDomSet_; // Sets of semi-dominators
-    std::vector<BB *> nodeLabels_;              // Labels assigned during DFS
-    std::vector<BB *> orderedBlocks_; // Blocks ordered by their DFS visitation
-    std::vector<BB *>
-        blockAncestors_; // Ancestors of each block in the DFS tree
+    int lastVisited_ = 0;              // Last visited vertex count during DFS
+    ArenaVector<BB *> *immDoms_ = nullptr;    // List of imm doms
+    ArenaVector<size_t> *semiDoms_ = nullptr; // Semi-doms for each block
+    ArenaVector<ArenaVector<BB *>> *semiDomSet_ = nullptr; // Sets of semi-dominators
+    ArenaVector<BB *> *nodeLabels_ = nullptr;              // Labels assigned during DFS
+    ArenaVector<BB *> *orderedBlocks_ = nullptr; // Blocks ordered by their DFS visitation
+    ArenaVector<BB *>
+        *blockAncestors_ = nullptr; // Ancestors of each block in the DFS tree
 };
 } // namespace ir
 

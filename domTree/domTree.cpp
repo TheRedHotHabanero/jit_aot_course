@@ -4,11 +4,7 @@
 namespace ir {
 
 void DomTreeBuilder::Construct(Graph *graph) {
-    if (!graph) {
-        std::cerr << "[DomTreeBuilder Error] Invalid Graph in Construct"
-                  << std::endl;
-        std::exit(EXIT_FAILURE);
-    }
+    assert(graph);
 
     // Terminate early for empty graphs
     if (graph->IsEmpty()) {
@@ -16,93 +12,97 @@ void DomTreeBuilder::Construct(Graph *graph) {
     }
 
     // Prepare internal structures for processing
-    InitializeStructures(graph->GetBBCount());
-
+    auto sdomsHelper = InitializeStructures(graph);
     // Begin depth-first search from the first basic block
     PerformDFS(graph->GetFirstBB());
 
     // Validate the graph's connectivity
-    if (lastVisited_ != static_cast<int>(graph->GetBBCount()) - 1) {
-        std::cerr << "[DomTreeBuilder Error] Graph is not fully connected"
-                  << std::endl;
-        std::exit(EXIT_FAILURE);
-    }
+    assert(lastVisited_ == static_cast<int>(graph->GetBBCount()) - 1);
 
     // Calculate semi-dominators for all blocks
-    DeriveSemiDominators();
+    DeriveSemiDominators(sdomsHelper);
 
     // Calculate immediate dominators
     DeriveImmediateDominators();
 }
+//static constexpr size_t INVALID_BB_ID = static_cast<size_t>(-1);
 
-void DomTreeBuilder::InitializeStructures(size_t blockCount) {
-    // Resetting internal variables for the new graph
+DSU DomTreeBuilder::InitializeStructures(Graph *graph) {
     lastVisited_ = -1;
-    semiDoms_.resize(blockCount, INVALID_BB_ID);
-    semiDomSet_.clear();
-    semiDomSet_.resize(blockCount);
-    immDoms_.resize(blockCount, nullptr);
-    nodeLabels_.resize(blockCount, nullptr);
-    orderedBlocks_.resize(blockCount, nullptr);
-    blockAncestors_.resize(blockCount, nullptr);
+    // Resetting internal variables for the new graph
+    auto bblocksCount = graph->GetBBCount();
+    auto *allocator = graph->GetAllocator();
+    if (semiDoms_ == nullptr) {
+        semiDoms_ = allocator->template NewVector<size_t>(bblocksCount, ir::INVALID_BB_ID);
+        semiDomSet_ = allocator->template NewVector<ArenaVector<BB *>>(bblocksCount,
+            ArenaVector<BB *>(allocator->ToSTL()));
+        immDoms_ = allocator->template NewVector<BB *>(bblocksCount, nullptr);
+        nodeLabels_ = allocator->template NewVector<BB *>(bblocksCount, nullptr);
+        orderedBlocks_ = allocator->template NewVector<BB *>(bblocksCount, nullptr);
+        blockAncestors_ = allocator->template NewVector<BB *>(bblocksCount, nullptr);
+    } else {
+        semiDoms_->clear();
+        semiDomSet_->clear();
+        immDoms_->clear();
+        nodeLabels_->clear();
+        orderedBlocks_->clear();
+        blockAncestors_->clear();
 
-    // DSU initializing for semi-dominators
-    semiDomHelper_ = DSU(nodeLabels_, semiDoms_);
+        semiDoms_->resize(bblocksCount, ir::INVALID_BB_ID);
+        semiDomSet_->resize(bblocksCount, ArenaVector<BB *>(allocator->ToSTL()));
+        immDoms_->resize(bblocksCount, nullptr);
+        nodeLabels_->resize(bblocksCount, nullptr);
+        orderedBlocks_->resize(bblocksCount, nullptr);
+        blockAncestors_->resize(bblocksCount, nullptr);
+    }
+    return DSU(nodeLabels_, semiDoms_, allocator);
 }
 
 void DomTreeBuilder::PerformDFS(BB *block) {
     ++lastVisited_;
-
-    if (!block || lastVisited_ >= static_cast<int>(orderedBlocks_.size())) {
-        std::cerr << "[DomTreeBuilder Error] Invalid Block in PerformDFS"
-                  << std::endl;
-        std::exit(EXIT_FAILURE);
-    }
+    assert((block) && (lastVisited_ < static_cast<int>(getSize())));
 
     // Set the current block's label and semi-dominator
     auto blockId = block->GetId();
-    nodeLabels_[blockId] = block;
-    semiDoms_[blockId] = lastVisited_;
-    orderedBlocks_[lastVisited_] = block;
+    nodeLabels_->at(blockId) = block;
+    setSemiDomNumber(block, lastVisited_);
+    setOrderedBlock(lastVisited_, block);
 
     // Recursively analyze each successor block
     for (auto *successor : block->GetSuccessors()) {
-        if (!nodeLabels_[successor->GetId()]) {
-            blockAncestors_[successor->GetId()] = block; // Record ancestor
+        if (getLabel(successor) == nullptr) {
+            setBlockDFOParent(successor, block); // Record ancestor
             PerformDFS(successor); // Continue DFS on successor
         }
     }
 }
 
-void DomTreeBuilder::DeriveSemiDominators() {
+void DomTreeBuilder::DeriveSemiDominators(DSU &sdomsHelper) {
     // Process blocks in reverse order of DFS
-    for (int i = static_cast<int>(orderedBlocks_.size()) - 1; i >= 0; --i) {
-        auto *currentBlock = orderedBlocks_[i];
-        auto currentId = currentBlock->GetId();
 
-        // UPD semi-doms using predecessors
+    for (int i = getSize() - 1; i >= 0; --i) {
+        auto *currentBlock = getOrderedBlock(i);
+        assert(currentBlock);
         for (const auto &pred : currentBlock->GetPredecessors()) {
-            auto minLabelNode = semiDomHelper_.Find(pred);
-            semiDoms_[currentId] = std::min(semiDoms_[currentId],
-                                            semiDoms_[minLabelNode->GetId()]);
+            auto nodeWithMinLabel = sdomsHelper.Find(pred);
+            auto id = std::min(
+                getSemiDomNumber(currentBlock), getSemiDomNumber(nodeWithMinLabel));
+            setSemiDomNumber(currentBlock, id);
         }
 
-        // Unite the current block with its ancestor in DSU
         if (i > 0) {
-            semiDomSet_[orderedBlocks_[semiDoms_[currentId]]->GetId()]
-                .push_back(currentBlock);
-            auto *parentBlock = blockAncestors_[currentId];
-            semiDomHelper_.Unite(currentBlock, parentBlock);
+            registerSemiDom(currentBlock);
+            sdomsHelper.Unite(currentBlock, getBlockDFOParent(currentBlock));
         }
 
-        // Identify immediate dominators from semi-dominators
-        for (auto dominatee : semiDomSet_[currentId]) {
-            auto minSemiDom = semiDomHelper_.Find(dominatee);
+        for (auto dominatee : getSemiDoms(currentBlock)) {
+            auto minSDom = sdomsHelper.Find(dominatee);
+
             auto dominateeId = dominatee->GetId();
-            if (semiDoms_[minSemiDom->GetId()] == semiDoms_[dominateeId]) {
-                immDoms_[dominateeId] = orderedBlocks_[semiDoms_[dominateeId]];
+            if (getSemiDomNumber(minSDom) == getSemiDomNumber(dominatee)) {
+                setImmDominator(dominateeId, getOrderedBlock(getSemiDomNumber(dominatee)));
             } else {
-                immDoms_[dominateeId] = minSemiDom;
+                setImmDominator(dominateeId, minSDom);
             }
         }
     }
@@ -110,21 +110,18 @@ void DomTreeBuilder::DeriveSemiDominators() {
 
 void DomTreeBuilder::DeriveImmediateDominators() {
     // Refine immediate dominators iteratively
-    for (size_t i = 1; i < orderedBlocks_.size(); ++i) {
-        auto *currentBlock = orderedBlocks_[i];
-        auto currentId = currentBlock->GetId();
 
-        // Update the dominator if necessary
-        if (immDoms_[currentId]->GetId() !=
-            orderedBlocks_[semiDoms_[currentId]]->GetId()) {
-            immDoms_[currentId] = immDoms_[immDoms_[currentId]->GetId()];
+    for (size_t i = 1; i < getSize(); ++i) {
+        auto *currentBlock = getOrderedBlock(i);
+        auto currentBlockId = currentBlock->GetId();
+        if (getImmDominator(currentBlockId) != getOrderedBlock(getSemiDomNumber(currentBlock))) {
+            setImmDominator(currentBlockId,
+                            getImmDominator(getImmDominator(currentBlockId)->GetId()));
         }
 
-        // Assign the current block's dominator
-        currentBlock->SetDominator(immDoms_[currentId]);
-
-        // Add the current block to its dominator's list of dominated blocks
-        immDoms_[currentId]->AddDominatedBlock(currentBlock);
+        auto *immDom = getImmDominator(currentBlockId);
+        currentBlock->SetDominator(immDom);
+        immDom->AddDominatedBlock(currentBlock);
     }
 }
 } // namespace ir

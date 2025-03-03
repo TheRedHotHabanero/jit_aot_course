@@ -11,7 +11,7 @@ BB *DSU::Find(BB *bblock) {
         std::abort();
     }
 
-    if (parentLinks_[bblock->GetId()] == nullptr) { // root
+    if (getParentLinks(bblock->GetId()) == nullptr) { // root
         return bblock;
     }
 
@@ -23,7 +23,7 @@ BB *DSU::Find(BB *bblock) {
 // Update the ancestor path to optimize future queries
 void DSU::UpdateAncestorPath(BB *bblock) {
     // Get the ancestor of the current block
-    auto ancestor = parentLinks_[bblock->GetId()];
+    auto ancestor = getParentLinks(bblock->GetId());
 
     if (ancestor == nullptr) {
         std::cout << "[DSU Error] UpdateAncestorPath Universum" << std::endl;
@@ -31,7 +31,7 @@ void DSU::UpdateAncestorPath(BB *bblock) {
     }
 
     // If the ancestor is a root, stop the recursion
-    if (parentLinks_[ancestor->GetId()] == nullptr) {
+    if (getParentLinks(ancestor->GetId()) == nullptr) {
         return;
     }
 
@@ -49,7 +49,19 @@ void DSU::UpdateAncestorPath(BB *bblock) {
     }
 
     // Path compression - connect the block to its ancestor's parent
-    parentLinks_[bblock->GetId()] = parentLinks_[ancestor->GetId()];
+    setParentLinks(bblock->GetId(), getParentLinks(ancestor->GetId()));
+}
+
+void DSU::Dump() {
+    std::cout << "--- DSU ---\n";
+    for (size_t i = 0; i < GetSize(); ++i) {
+        if (getParentLinks(i) != nullptr) {
+            std::cout << "= BB " << i << ": " << getParentLinks(i)->GetId() << std::endl;
+        } else {
+            std::cout << "= BB " << i << " is root\n";
+        }
+    }
+    std::cout << "-----------" << std::endl;
 }
 
 } // namespace ir

@@ -7,6 +7,7 @@ set(SOURCES
     domTree.cpp
     instructions.cpp
     loopChecker.cpp
+    peepholes.cpp
     main.cpp
 )
 
@@ -15,3 +16,4 @@ add_executable(${BINARY} ${SOURCES})
 add_test(NAME ${BINARY} COMMAND ${BINARY})
 
 target_link_libraries(${BINARY} PUBLIC domTree irGen gtest)
+target_link_libraries(${BINARY} PUBLIC domTree irGen optimizations gtest)

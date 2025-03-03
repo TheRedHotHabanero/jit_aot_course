@@ -31,18 +31,63 @@
 #include <cstdint>
 #include <iostream>
 #include <vector>
+#include <limits>
+#include <type_traits>
+#include "input.h"
+#include "user.h"
+#include "domTree/arena.h"
 namespace ir {
+using memory::ArenaAllocator;
+using memory::ArenaVector;
 class BB;
 
 enum class InstType { i8, i16, i32, i64, u8, u16, u32, u64, VOID, INVALID };
 
+constexpr inline int64_t ToSigned(uint64_t value, InstType type) {
+    switch (type) {
+    case InstType::u8:
+        return static_cast<int64_t>(static_cast<int8_t>(value));
+    case InstType::u16:
+        return static_cast<int64_t>(static_cast<int16_t>(value));
+    case InstType::u32:
+        return static_cast<int64_t>(static_cast<int32_t>(value));
+    case InstType::u64:
+        return static_cast<int64_t>(static_cast<int64_t>(value));
+    default:
+        return static_cast<int64_t>(value);
+  }
+}
+
+constexpr std::array<uint64_t, static_cast<size_t>(InstType::INVALID)> maxValues{
+    std::numeric_limits<int8_t>::max(),
+    std::numeric_limits<int16_t>::max(),
+    std::numeric_limits<int32_t>::max(),
+    std::numeric_limits<int64_t>::max(),
+    std::numeric_limits<uint8_t>::max(),
+    std::numeric_limits<uint16_t>::max(),
+    std::numeric_limits<uint32_t>::max(),
+    std::numeric_limits<uint64_t>::max(),
+};
+
+
+constexpr inline uint64_t GetMaxValue(InstType type) {
+  assert(type != InstType::INVALID);
+  return maxValues[static_cast<size_t>(type)];
+}
+
 enum class Opcode {
     MUL,
+    MULI,
+    SHR,
+    SHRI,
+    XOR,
+    XORI,
     ADDI,
-    CAST, // Type1 as type2
+    ADD,
+    CAST,
     CMP,
-    JA,  // Cond jump
-    JMP, // Non-cond jump
+    JA,
+    JMP,
     RET,
     PHI,
     CONST,
@@ -52,14 +97,25 @@ enum class Opcode {
 
 static constexpr std::array<const char *,
                             static_cast<size_t>(Opcode::INVALID) + 1>
-    nameOpcode{"MUL", "ADDI", "MOVI", "CAST",   "CMP",
+    nameOpcode{"MUL", "MULI", "SHR", "SHRI", "XOR", "XORI", "ADDI", "MOVI", "CAST",   "CMP",
                "JA",  "JMP",  "RET",  "INVALID"};
 
-class SingleInstruction {
+// Instructions properties, used in optimizations
+using InstructionPropT = uint8_t;
+
+enum class InstrProp : InstructionPropT {
+    ARITH = 0b1,
+    MEM = 0b10,
+    COMMUTABLE = 0b100,
+    JUMP = 0b1000,
+    INPUT = 0b10000,
+};
+
+class ConstInstr;
+class SingleInstruction: public User {
   public:
-    SingleInstruction(Opcode opcode, InstType type)
-        : opcode_(opcode), prevInst_(nullptr), nextInst_(nullptr),
-          instBB_(nullptr), instType_(type), instID_(INVALID_ID) {}
+    SingleInstruction(Opcode opcode, InstType type, ArenaAllocator *const allocator, size_t id = INVALID_ID, InstructionPropT prop = 0)
+        : User(allocator), opcode_(opcode), instType_(type), instID_(id), properties_(prop) {}
     SingleInstruction(const SingleInstruction &) = delete;
     SingleInstruction &operator=(const SingleInstruction &) = delete;
     SingleInstruction(SingleInstruction &&) = delete;
@@ -68,24 +124,64 @@ class SingleInstruction {
 
   private:
     Opcode opcode_;
-    SingleInstruction *prevInst_;
-    SingleInstruction *nextInst_;
-    BB *instBB_;
+    SingleInstruction *prevInst_ = nullptr;
+    SingleInstruction *nextInst_ = nullptr;
+    BB *instBB_ = nullptr;
     InstType instType_;
     size_t instID_;
+    InstructionPropT properties_ = 0;
 
   public:
     // getters
     size_t GetInstID() const { return instID_; }
     SingleInstruction *GetPrevInst() { return prevInst_; }
     SingleInstruction *GetNextInst() { return nextInst_; }
+    ConstInstr *CastToConstant();
     BB *GetInstBB() const { return instBB_; }
     Opcode GetOpcode() const { return opcode_; }
     const char *GetOpcodeName(Opcode opcode) const;
-    auto GetRegType() { return instType_; }
+    auto GetType() { return instType_; }
+    InstructionPropT GetProperties() const {
+      return properties_;
+    }
+    bool SatisfiesProperty(InstrProp prop) const {
+        return GetProperties() & std::to_underlying(prop);
+    }
     bool IsInputArgument() const { return opcode_ == Opcode::ARG; }
     bool IsPhi() const { return opcode_ == Opcode::PHI; }
-    static const size_t INVALID_ID = static_cast<size_t>(0) - 1;
+    static constexpr size_t INVALID_ID = static_cast<size_t>(0) - 1;
+    bool IsConst() const {
+      return GetOpcode() == Opcode::CONST;
+    }
+
+    bool HasInputs() const {
+      return SatisfiesProperty(InstrProp::INPUT);
+    }
+
+    void SetProperty(InstrProp prop) {
+      properties_ |= std::to_underlying(prop);
+    }
+    void SetProperty(InstructionPropT prop) {
+      properties_ |= prop;
+    }
+
+    void ReplaceWith(SingleInstruction *new_inst) {
+        if (prevInst_) {
+            prevInst_->SetNextInst(new_inst);
+        }
+
+        if (nextInst_) {
+            nextInst_->SetPrevInst(new_inst);
+        }
+    
+        new_inst->SetPrevInst(prevInst_);
+        new_inst->SetNextInst(nextInst_);
+        
+        new_inst->SetBB(instBB_);
+
+        RemoveFromBlock();
+    }
+    
 
   public:
     // setters
