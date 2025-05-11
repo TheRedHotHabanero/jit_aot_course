@@ -3,8 +3,7 @@
 #include <iostream>
 
 namespace ir::tests {
-class DomTreeTest : public TestBase {
-};
+class DomTreeTest : public TestBase {};
 static void checkDominatedBBs(BB *bblock, const std::vector<BB *> &expected) {
     ASSERT_NE(bblock, nullptr);
     auto dominated = bblock->GetDominatedBBs();
@@ -22,9 +21,9 @@ static void checkDominatedBBs(BB *bblock, const std::vector<BB *> &expected) {
 TEST_F(DomTreeTest, TestBuilding1) {
     std::vector<BB *> bblocks(7);
     for (auto &it : bblocks) {
-        it = GetIRGenerator().CreateEmptyBB();
+        it = GetGraph()->CreateEmptyBB();
     }
-    auto *graph = GetIRGenerator().GetGraph();
+    auto *graph = GetGraph();
     graph->SetFirstBB(bblocks[0]);
     graph->ConnectBBs(bblocks[0], bblocks[1]);
     graph->ConnectBBs(bblocks[1], bblocks[2]);
@@ -56,9 +55,9 @@ TEST_F(DomTreeTest, TestBuilding1) {
 TEST_F(DomTreeTest, TestBuilding2) {
     std::vector<BB *> bblocks(11);
     for (auto &it : bblocks) {
-        it = GetIRGenerator().CreateEmptyBB();
+        it = GetGraph()->CreateEmptyBB();
     }
-    auto *graph = GetIRGenerator().GetGraph();
+    auto *graph = GetGraph();
     graph->SetFirstBB(bblocks[0]);
     for (size_t i = 0; i < 7; ++i) {
         graph->ConnectBBs(bblocks[i], bblocks[i + 1]);
@@ -96,9 +95,9 @@ TEST_F(DomTreeTest, TestBuilding2) {
 TEST_F(DomTreeTest, TestBuilding3) {
     std::vector<BB *> bblocks(9);
     for (auto &it : bblocks) {
-        it = GetIRGenerator().CreateEmptyBB();
+        it = GetGraph()->CreateEmptyBB();
     }
-    auto *graph = GetIRGenerator().GetGraph();
+    auto *graph = GetGraph();
     graph->SetFirstBB(bblocks[0]);
     for (size_t i = 0; i < 3; ++i) {
         graph->ConnectBBs(bblocks[i], bblocks[i + 1]);

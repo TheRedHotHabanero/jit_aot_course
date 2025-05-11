@@ -1,11 +1,11 @@
 #ifndef JIT_AOT_COURSE_DOMTREE_DOMTREE
 #define JIT_AOT_COURSE_DOMTREE_DOMTREE
 
+#include "arena.h"
 #include "dsu.h"
 #include "graph.h"
-#include "arena.h"
-#include <vector>
 #include <cassert>
+#include <vector>
 
 /*
 Algorithm description based on the reference in the README:
@@ -41,7 +41,7 @@ the computation vertex by vertex in increasing order based on their labels.
 */
 
 namespace ir {
-class DomTreeBuilder  {
+class DomTreeBuilder {
   public:
     void Construct(Graph *graph);
 
@@ -61,16 +61,10 @@ class DomTreeBuilder  {
     // Calculates immediate dominators for all blocks
     void DeriveImmediateDominators();
 
-    size_t getSize() const {
-      return immDoms_->size();
-    }
+    size_t getSize() const { return immDoms_->size(); }
 
-    BB *getImmDominator(size_t id) {
-        return immDoms_->at(id);
-    }
-    void setImmDominator(size_t id, BB *bblock) {
-        immDoms_->at(id) = bblock;
-    }
+    BB *getImmDominator(size_t id) { return immDoms_->at(id); }
+    void setImmDominator(size_t id, BB *bblock) { immDoms_->at(id) = bblock; }
 
     size_t getSemiDomNumber(BB *bblock) {
         assert(bblock);
@@ -87,7 +81,8 @@ class DomTreeBuilder  {
     }
     void registerSemiDom(BB *bblock) {
         auto semiDomNumber = getSemiDomNumber(bblock);
-        semiDomSet_->at(getOrderedBlock(semiDomNumber)->GetId()).push_back(bblock);
+        semiDomSet_->at(getOrderedBlock(semiDomNumber)->GetId())
+            .push_back(bblock);
     }
 
     BB *getLabel(BB *bblock) {
@@ -114,14 +109,16 @@ class DomTreeBuilder  {
     }
 
     // Member variables
-    int lastVisited_ = 0;              // Last visited vertex count during DFS
+    int lastVisited_ = 0; // Last visited vertex count during DFS
     ArenaVector<BB *> *immDoms_ = nullptr;    // List of imm doms
     ArenaVector<size_t> *semiDoms_ = nullptr; // Semi-doms for each block
-    ArenaVector<ArenaVector<BB *>> *semiDomSet_ = nullptr; // Sets of semi-dominators
-    ArenaVector<BB *> *nodeLabels_ = nullptr;              // Labels assigned during DFS
-    ArenaVector<BB *> *orderedBlocks_ = nullptr; // Blocks ordered by their DFS visitation
-    ArenaVector<BB *>
-        *blockAncestors_ = nullptr; // Ancestors of each block in the DFS tree
+    ArenaVector<ArenaVector<BB *>> *semiDomSet_ =
+        nullptr;                              // Sets of semi-dominators
+    ArenaVector<BB *> *nodeLabels_ = nullptr; // Labels assigned during DFS
+    ArenaVector<BB *> *orderedBlocks_ =
+        nullptr; // Blocks ordered by their DFS visitation
+    ArenaVector<BB *> *blockAncestors_ =
+        nullptr; // Ancestors of each block in the DFS tree
 };
 } // namespace ir
 

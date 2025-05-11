@@ -25,7 +25,8 @@ void *Arena::Alloc(size_t sz, size_t alignSize) {
 }
 
 void ArenaAllocator::addNewArena() {
-    void *mem = mmap(nullptr, arenaSize, PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    void *mem = mmap(nullptr, arenaSize, PROT_WRITE,
+                     MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     assert(mem != MAP_FAILED);
     auto *newArena = new Arena(mem, arenaSize);
     assert(newArena);
@@ -48,4 +49,4 @@ void *ArenaAllocator::allocate(size_t size) {
 STLCompliantArenaAllocator<int> ArenaAllocator::ToSTL() {
     return STLCompliantArenaAllocator<int>(this);
 }
-}   // namespace utils::memory
+} // namespace memory

@@ -1,14 +1,13 @@
 #ifndef JIT_AOT_COURSE_CONSTANT_FOLDING_H_
 #define JIT_AOT_COURSE_CONSTANT_FOLDING_H_
 
-#include "domTree/arena.h"
 #include "bb.h"
+#include "domTree/arena.h"
 #include "graph.h"
-
 
 namespace ir {
 class ConstantFolding {
-public:
+  public:
     ConstantFolding() = default;
     ConstantFolding(const ConstantFolding &) = delete;
     ConstantFolding &operator=(const ConstantFolding &) = delete;
@@ -22,10 +21,10 @@ public:
     virtual bool ProcessSHR(BinaryRegInstr *instr);
     virtual bool ProcessXOR(BinaryRegInstr *instr);
 
-private:
+  private:
     static ConstInstr *AsConst(SingleInstruction *instr);
     static InstructionBuilder *GetInstructionBuilder(SingleInstruction *instr);
 };
-}   // namespace ir
+} // namespace ir
 
-#endif  // JIT_AOT_COURSE_CONSTANT_FOLDING_H_
+#endif // JIT_AOT_COURSE_CONSTANT_FOLDING_H_

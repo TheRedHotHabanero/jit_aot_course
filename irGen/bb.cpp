@@ -1,8 +1,8 @@
 #include "bb.h"
 #include <algorithm>
+#include <cassert>
 #include <cstdlib>
 #include <vector>
-#include <cassert>
 namespace ir {
 
 // const size_t BB::INVALID_BB_ID;
@@ -74,38 +74,51 @@ void BB::SetInstructionAsDead(SingleInstruction *inst) {
 
     if (tmpPrev) {
         tmpPrev->SetNextInst(tmpNext);
-    } else {
-        firstInstBB_ = tmpNext;
     }
 
     if (tmpNext) {
         tmpNext->SetPrevInst(tmpPrev);
-    } else {
-        lastInstBB_ = tmpPrev;
     }
 
-    if (inst == firstPhiBB_) {
-        firstPhiBB_ = nullptr;
+    if (inst->IsPhi()) {
+        if (inst == firstPhiBB_) {
+            if (inst == lastPhiBB_) {
+                firstPhiBB_ = nullptr;
+                lastPhiBB_ = nullptr;
+            } else {
+                assert((tmpNext) && tmpNext->IsPhi());
+                firstPhiBB_ = static_cast<PhiInstr *>(tmpNext);
+            }
+        } else if (inst == lastPhiBB_) {
+            assert((tmpPrev) && tmpPrev->IsPhi());
+            lastPhiBB_ = static_cast<PhiInstr *>(tmpPrev);
+        }
+    } else {
+        if (inst == firstInstBB_) {
+            firstInstBB_ = tmpNext;
+        }
+        if (inst == lastInstBB_) {
+            lastInstBB_ = (tmpPrev && tmpPrev->IsPhi()) ? nullptr : tmpPrev;
+        }
     }
     size_ -= 1;
-
 }
 
-
-void BB::ReplaceInstruction(SingleInstruction *prevInstr, SingleInstruction *newInstr) {
-    ReplaceInDataFlow(prevInstr, newInstr);
-    replaceInControlFlow(prevInstr, newInstr);
+void BB::ReplaceInstruction(SingleInstruction *prevInstr,
+                            SingleInstruction *newInstr) {
+    prevInstr->ReplaceInputInUsers(newInstr);
+    ReplaceInControlFlow(prevInstr, newInstr);
 }
 
-void BB::ReplaceInDataFlow(SingleInstruction *prevInstr, SingleInstruction *newInstr) {
-    newInstr->AddUsers(prevInstr->GetUsers());
-    for (auto &it : prevInstr->GetUsers()) {
-        auto *typed = static_cast<InputsInstr *>(it);
-        typed->ReplaceInput(prevInstr, newInstr);
-    }
+void BB::ReplaceSuccessor(BB *prevSucc, BB *newSucc) {
+    assert((prevSucc) && (newSucc));
+    auto it = std::find(successors_.begin(), successors_.end(), prevSucc);
+    assert(it != successors_.end());
+    *it = newSucc;
 }
 
-void BB::replaceInControlFlow(SingleInstruction *prevInstr, SingleInstruction *newInstr) {
+void BB::ReplaceInControlFlow(SingleInstruction *prevInstr,
+                              SingleInstruction *newInstr) {
     assert((prevInstr) && (prevInstr->GetInstBB() == this));
     if (prevInstr->GetPrevInst()) {
         InsertSingleInstrAfter(prevInstr->GetPrevInst(), newInstr);
@@ -116,6 +129,7 @@ void BB::replaceInControlFlow(SingleInstruction *prevInstr, SingleInstruction *n
     }
     SetInstructionAsDead(prevInstr);
 }
+
 void BB::InsertSingleInstrBefore(SingleInstruction *instToMove,
                                  SingleInstruction *currentInstr) {
     // PrevInst  →  instToMove  →  NextInst
@@ -178,59 +192,53 @@ void BB::InsertSingleInstrAfter(SingleInstruction *instToInsert,
     size_ += 1;
 }
 
-void BB::PushInstForward(SingleInstruction *instr) {
-    if (!instr || instr->GetInstBB() != nullptr ||
-        instr->GetPrevInst() != nullptr) {
-        std::cout << "[BB Error] nullptr in 'PushInstForward'" << std::endl;
-        std::abort();
-    }
-
-    // Set Parent bb for inst
+template <bool PushBack> void BB::PushInstruction(SingleInstruction *instr) {
+    assert((instr) && (instr->GetInstBB() == nullptr) &&
+           (instr->GetPrevInst() == nullptr));
     instr->SetBB(this);
 
-    // If empty bb, set first and last instr
     if (instr->IsPhi()) {
         PushPhi(instr);
     } else if (firstInstBB_ == nullptr) {
+        instr->SetPrevInst(lastPhiBB_);
         firstInstBB_ = instr;
         lastInstBB_ = instr;
+        if (lastPhiBB_) {
+            lastPhiBB_->SetNextInst(instr);
+        }
     } else {
-        instr->SetNextInst(firstInstBB_);
-        firstInstBB_->SetPrevInst(instr);
-        firstInstBB_ = instr;
+        if constexpr (PushBack) {
+            instr->SetPrevInst(lastInstBB_);
+            lastInstBB_->SetNextInst(instr);
+            lastInstBB_ = instr;
+        } else {
+            instr->SetNextInst(firstInstBB_);
+            firstInstBB_->SetPrevInst(instr);
+            firstInstBB_ = instr;
+        }
     }
     size_ += 1;
 }
 
+void BB::PushInstForward(SingleInstruction *instr) {
+    PushInstruction<false>(instr);
+}
+
 void BB::PushInstBackward(SingleInstruction *instr) {
-    if (!instr || instr->GetInstBB() != nullptr ||
-        instr->GetPrevInst() != nullptr) {
-        std::cout << "[BB Error] nullptr in 'PushInstBackward'" << std::endl;
-        std::abort();
-    }
-
-    // Set Parent bb for inst
-    instr->SetBB(this);
-
-    // If empty bb, set first and last instr
-    if (firstInstBB_ == nullptr) {
-        firstInstBB_ = instr;
-        lastInstBB_ = instr;
-    } else {
-        instr->SetPrevInst(lastInstBB_);
-        lastInstBB_->SetNextInst(instr);
-        lastInstBB_ = instr;
-    }
-    size_ += 1;
+    PushInstruction<true>(instr);
 }
 
 void BB::PushPhi(SingleInstruction *instr) {
     if (instr == nullptr || !instr->IsPhi()) {
         std::cout << "[BB Error] PushPhi error." << std::endl;
     }
-    if (!firstPhiBB_) {
+    if (firstPhiBB_ == nullptr) {
         firstPhiBB_ = reinterpret_cast<PhiInstr *>(instr);
-        firstPhiBB_->SetNextInst(firstInstBB_);
+        lastPhiBB_ = firstPhiBB_;
+        lastPhiBB_->SetNextInst(firstInstBB_);
+        if (firstInstBB_) {
+            firstInstBB_->SetPrevInst(lastPhiBB_);
+        }
     } else {
         instr->SetNextInst(firstPhiBB_);
         firstPhiBB_->SetPrevInst(instr);
@@ -272,6 +280,30 @@ void BB::PrintSSA() {
         std::cout << "BB" << succ->GetId() << " "; // Print successor block IDs
     }
     std::cout << std::endl;
+}
+
+BB *JumpInstr::GetDestination() {
+    auto *bblock = GetInstBB();
+    assert(bblock);
+    auto successors = bblock->GetSuccessors();
+    assert(!successors.empty());
+    return successors[0];
+}
+
+BB *CondJumpInstr::GetTrueDestination() {
+    return getBranchDestinationImpl<0>();
+}
+
+BB *CondJumpInstr::GetFalseDestination() {
+    return getBranchDestinationImpl<1>();
+}
+
+template <int CmpRes> BB *CondJumpInstr::getBranchDestinationImpl() {
+    auto *bblock = GetInstBB();
+    assert(bblock);
+    auto successors = bblock->GetSuccessors();
+    assert(successors.size() == 2);
+    return successors[CmpRes];
 }
 
 } // namespace ir

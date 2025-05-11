@@ -4,7 +4,26 @@
 
 namespace ir {
 
+size_t Graph::CountInstructions() {
+    size_t counter = 0;
+    ForEachBB([&counter](BB *bblock) { counter += bblock->GetSize(); });
+    return counter;
+}
+
+BB *Graph::CreateEmptyBB(bool isTerminal) {
+    auto *bblock = allocator_->template New<BB>(this);
+    AddBB(bblock);
+    if (isTerminal) {
+        if (!GetLastBB()) {
+            SetLastBB(CreateEmptyBB(false));
+        }
+        ConnectBBs(bblock, GetLastBB());
+    }
+    return bblock;
+}
+
 void Graph::ConnectBBs(BB *lhs, BB *rhs) {
+    assert((lhs) && (rhs));
     lhs->AddSuccessors(rhs);
     rhs->AddPredecessors(lhs);
 }
@@ -14,7 +33,7 @@ void Graph::AddBB(BB *bb) {
         std::cout << "[Graph Error] BB went nullptr (AddBB)." << std::endl;
         std::abort();
     }
-    bb->SetId(GetBBCount()); // because it was the last one
+    bb->SetId(BBs_.size()); // because it was the last one
     BBs_.push_back(bb);
     bb->SetGraph(this);
 }
@@ -45,34 +64,31 @@ void Graph::AddBBBefore(BB *bb_before, BB *bb) {
 }
 
 void Graph::SetBBAsDead(BB *bb) {
-    if (bb == nullptr) {
-        std::cout << "[Graph Error] BB went nullptr (SetBBAsDead)."
-                  << std::endl;
-        std::abort();
+    SetBBAsDeadImpl(bb);
+    if (bb != GetLastBB()) {
+        DeletePredecessors(bb);
+        DeleteSuccessors(bb);
+    } else {
+        bb->GetPredecessors().clear();
+        bb->GetSuccessors().clear();
     }
-    if (bb->GetGraph() != this) {
-        std::cout << "[Graph Error] BB went this (SetBBAsDead)." << std::endl;
-        std::abort();
-    }
-    if (std::find(BBs_.begin(), BBs_.end(), bb) == BBs_.end()) {
-
-        std::cout << "[Graph Error] Failed to find BB." << std::endl;
-        std::abort();
-    }
-    auto id = bb->GetId();
-    // if (id >= BBs_->size() || BBs_[id] != bb) {
-    if (id >= GetBBCount()) {
-        std::cout << "[Graph Error] Error in 'SetBBAsDead'" << std::endl;
-        std::abort();
-    }
-    BBs_[id] = nullptr;
-    bb->SetId(INVALID_BB_ID);
-    if (bb == lastBB_) {
-        SetLastBB(nullptr);
-    }
-    DeletePredecessors(bb);
-    DeleteSuccessors(bb);
 }
+
+void Graph::SetBBAsDeadImpl(BB *bblock) {
+    assert((bblock) && bblock->GetGraph() == this);
+    auto id = bblock->GetId();
+    assert(id < BBs_.size() && BBs_[id] == bblock);
+    BBs_[id] = nullptr;
+    bblock->SetId(ir::INVALID_BB_ID);
+    bblock->SetGraph(nullptr);
+    ++deadInstrCounter_;
+}
+
+bool BB::IsFirstInGraph() {
+    return GetGraph()->GetFirstBB() == this;
+}
+
+bool BB::IsLastInGraph() { return GetGraph()->GetLastBB() == this; }
 
 void Graph::CleanupUnusedBlocks() {
     ArenaVector<BB *> activeBlocks;
@@ -118,10 +134,8 @@ void Graph::PrintSSA() {
 
 // defined here after full declaration of Graph methods
 BB::BB(Graph *graph)
-    : bbId_(INVALID_BB_ID),
-      predecessors_(graph->GetAllocator()->ToSTL()),
-      successors_(graph->GetAllocator()->ToSTL()),
-      graph_(graph),
+    : bbId_(INVALID_BB_ID), predecessors_(graph->GetAllocator()->ToSTL()),
+      successors_(graph->GetAllocator()->ToSTL()), graph_(graph),
       dominated_(graph->GetAllocator()->ToSTL()) {}
 
 } // namespace ir

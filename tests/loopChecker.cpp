@@ -1,19 +1,19 @@
-#include "testBase.h"
 #include "loopChecker.h"
+#include "testBase.h"
 #include <iostream>
 
 namespace ir::tests {
 class LoopAnalysisTest : public TestBase {
-public:
+  public:
     LoopChecker loopChecker;
 };
 
 TEST_F(LoopAnalysisTest, TestLoops1) {
     std::vector<BB *> bblocks(7);
+    auto *graph = GetGraph();
     for (auto &it : bblocks) {
-        it = GetIRGenerator().CreateEmptyBB();
+        it = graph->CreateEmptyBB();
     }
-    auto *graph = GetIRGenerator().GetGraph();
     graph->SetFirstBB(bblocks[0]);
     graph->ConnectBBs(bblocks[0], bblocks[1]);
     graph->ConnectBBs(bblocks[1], bblocks[2]);
@@ -37,10 +37,10 @@ TEST_F(LoopAnalysisTest, TestLoops1) {
 
 TEST_F(LoopAnalysisTest, TestLoops2) {
     std::vector<BB *> bblocks(11);
+    auto *graph = GetGraph();
     for (auto &it : bblocks) {
-        it = GetIRGenerator().CreateEmptyBB();
+        it = graph->CreateEmptyBB();
     }
-    auto *graph = GetIRGenerator().GetGraph();
     graph->SetFirstBB(bblocks[0]);
     for (size_t i = 0; i < 7; ++i) {
         graph->ConnectBBs(bblocks[i], bblocks[i + 1]);
@@ -86,10 +86,10 @@ TEST_F(LoopAnalysisTest, TestLoops2) {
 
 TEST_F(LoopAnalysisTest, TestLoops3) {
     std::vector<BB *> bblocks(9);
+    auto *graph = GetGraph();
     for (auto &it : bblocks) {
-        it = GetIRGenerator().CreateEmptyBB();
+        it = graph->CreateEmptyBB();
     }
-    auto *graph = GetIRGenerator().GetGraph();
     graph->SetFirstBB(bblocks[0]);
     for (size_t i = 0; i < 3; ++i) {
         graph->ConnectBBs(bblocks[i], bblocks[i + 1]);
@@ -130,10 +130,10 @@ TEST_F(LoopAnalysisTest, TestLoops3) {
 
 TEST_F(LoopAnalysisTest, TestLoops4) {
     std::vector<BB *> bblocks(5);
+    auto *graph = GetGraph();
     for (auto &it : bblocks) {
-        it = GetIRGenerator().CreateEmptyBB();
+        it = graph->CreateEmptyBB();
     }
-    auto *graph = GetIRGenerator().GetGraph();
     graph->SetFirstBB(bblocks[0]);
     graph->ConnectBBs(bblocks[0], bblocks[1]);
     graph->ConnectBBs(bblocks[1], bblocks[2]);
@@ -160,9 +160,9 @@ TEST_F(LoopAnalysisTest, TestLoops4) {
 TEST_F(LoopAnalysisTest, TestLoops5) {
     std::vector<BB *> bblocks(6);
     for (auto &it : bblocks) {
-        it = GetIRGenerator().CreateEmptyBB();
+        it = GetGraph()->CreateEmptyBB();
     }
-    auto *graph = GetIRGenerator().GetGraph();
+    auto *graph = GetGraph();
     graph->SetFirstBB(bblocks[0]);
     for (size_t i = 0; i < 3; ++i) {
         graph->ConnectBBs(bblocks[i], bblocks[i + 1]);
@@ -191,9 +191,9 @@ TEST_F(LoopAnalysisTest, TestLoops5) {
 TEST_F(LoopAnalysisTest, TestLoops6) {
     std::vector<BB *> bblocks(8);
     for (auto &it : bblocks) {
-        it = GetIRGenerator().CreateEmptyBB();
+        it = GetGraph()->CreateEmptyBB();
     }
-    auto *graph = GetIRGenerator().GetGraph();
+    auto *graph = GetGraph();
     graph->SetFirstBB(bblocks[0]);
     graph->ConnectBBs(bblocks[0], bblocks[1]);
     graph->ConnectBBs(bblocks[1], bblocks[2]);

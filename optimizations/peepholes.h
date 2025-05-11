@@ -1,21 +1,16 @@
 
-#include "domTree/arena.h"
 #include "constFolding.h"
-#include "irGen/singleInstruction.h"
+#include "domTree/arena.h"
 #include "irGen/graph.h"
+#include "irGen/singleInstruction.h"
+#include "pass.h"
 namespace ir {
-class Peepholes {
-public:
-    explicit Peepholes(Graph *graph) : graph_(graph) {
+class Peepholes : public OptimizationPassBase {
+  public:
+    explicit Peepholes(Graph *graph) : OptimizationPassBase(graph) {
         assert(graph);
     }
-    Peepholes(const Peepholes &) = delete;
-    Peepholes &operator=(const Peepholes &) = delete;
-
-    Peepholes(Peepholes &&) = delete;
-    Peepholes &operator=(Peepholes &&) = delete;
-
-    virtual ~Peepholes() = default;
+    ~Peepholes() noexcept override = default;
 
     // Cases of optimization
     bool TryOptimizeMul(BinaryRegInstr *inst);
@@ -26,10 +21,11 @@ public:
     void VisitShr(SingleInstruction *instr);
     void VisitXor(SingleInstruction *instr);
 
-    void Run();
-private:
-    void ReplaceWithoutNewInstr(BinaryRegInstr *instr, SingleInstruction *replacedInstr);
-    Graph *graph_;
+    void Run() override;
+
+  private:
+    void ReplaceWithoutNewInstr(BinaryRegInstr *instr,
+                                SingleInstruction *replacedInstr);
     ConstantFolding constFolding_;
 };
-}
+} // namespace ir
