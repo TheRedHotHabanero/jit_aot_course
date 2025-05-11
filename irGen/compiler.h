@@ -1,36 +1,46 @@
 #ifndef JIT_AOT_COURSE_IR_GEN_COMPILER
 #define JIT_AOT_COURSE_IR_GEN_COMPILER
 
+#include "base.h"
 #include "domTree/arena.h"
-#include "graph.h"
 #include "helperBuilderFunctions.h"
-#include "irGen.h"
 
-
-class CompilerBase {
-public:
-    CompilerBase() = default;
-    CompilerBase(const CompilerBase &) = delete;
-    CompilerBase(CompilerBase &&) = delete;
-    virtual ~CompilerBase() = default;
-};
+namespace ir {
+using namespace memory;
 
 class Compiler : public CompilerBase {
-public:
-    Compiler() : allocator_(), instrBuilder(&allocator_), irGenerator_(&allocator_) {}
+  public:
+    Compiler() : allocator_(), functionsGraphs_(allocator_.ToSTL()) {}
 
-    ir::InstructionBuilder &GetInstructionBuilder() {
-        return instrBuilder;
+    Graph *CreateNewGraph() override {
+        auto *instrBuilder =
+            allocator_.template New<InstructionBuilder>(&allocator_);
+        return CreateNewGraph(instrBuilder);
     }
-    ir::IRGenerator &GetIRGenerator() {
-        return irGenerator_;
+    Graph *CreateNewGraph(InstructionBuilder *instrBuilder);
+    Graph *CopyGraph(Graph *source, InstructionBuilder *instrBuilder) override;
+    Graph *Optimize(Graph *graph) override {
+        return graph;
+    }
+    Graph *GetFunction(FunctionID functionId) override {
+        if (functionId >= functionsGraphs_.size()) {
+            return nullptr;
+        }
+        return functionsGraphs_[functionId];
     }
 
-private:
+    bool DeleteFunctionGraph(FunctionID functionId) override {
+        if (functionId >= functionsGraphs_.size()) {
+            return false;
+        }
+        functionsGraphs_.erase(functionsGraphs_.begin() + functionId);
+        return true;
+    }
+
+  private:
     memory::ArenaAllocator allocator_;
-
-    ir::InstructionBuilder instrBuilder;
-    ir::IRGenerator irGenerator_;
+    ArenaVector<Graph *> functionsGraphs_;
 };
 
+};     // namespace ir
 #endif // JIT_AOT_COURSE_IR_GEN_COMPILER

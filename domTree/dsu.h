@@ -1,8 +1,8 @@
 #ifndef JIT_AOT_COMPILERS_DOMTREE_DSU_H_
 #define JIT_AOT_COMPILERS_DOMTREE_DSU_H_
 
-#include "bb.h"
 #include "arena.h"
+#include "bb.h"
 #include <numeric>
 #include <stdexcept>
 #include <vector>
@@ -10,20 +10,18 @@
 namespace ir {
 
 using memory::ArenaVector;
-class DSU  {
+class DSU {
   public:
     DSU() = delete;
     DSU(memory::ArenaVector<BB *> *labels,
-      const memory::ArenaVector<size_t> *sdoms,
-      ArenaAllocator *const allocator)
-      :
-      parentLinks_(labels->size(), nullptr, allocator->ToSTL()), 
-      labels_(labels),
-      sdoms_(sdoms) {}
-    DSU(const DSU&) = default;
-    DSU& operator=(const DSU&) = default;
-    DSU(DSU&&) = default;
-    DSU& operator=(DSU&&) = default;
+        const memory::ArenaVector<size_t> *sdoms,
+        ArenaAllocator *const allocator)
+        : parentLinks_(labels->size(), nullptr, allocator->ToSTL()),
+          labels_(labels), sdoms_(sdoms) {}
+    DSU(const DSU &) = default;
+    DSU &operator=(const DSU &) = default;
+    DSU(DSU &&) = default;
+    DSU &operator=(DSU &&) = default;
     ~DSU() = default;
     BB *Find(BB *bblock);
     size_t GetSize() const { return parentLinks_.size(); }
@@ -32,12 +30,8 @@ class DSU  {
     }
     void Dump();
 
-  BB *getParentLinks(size_t id) {
-      return parentLinks_.at(id);
-  }
-  void setParentLinks(size_t id, BB *bblock) {
-    parentLinks_.at(id) = bblock;
-  }
+    BB *getParentLinks(size_t id) { return parentLinks_.at(id); }
+    void setParentLinks(size_t id, BB *bblock) { parentLinks_.at(id) = bblock; }
 
   private:
     void UpdateAncestorPath(BB *bblock);

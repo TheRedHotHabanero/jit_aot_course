@@ -3,13 +3,14 @@
 
                                                    Basic Block
     ____________________________________________________________________________________________________________________
-    | Instruction 1                Instruction 2                                                        Instruction n   |
-    | - prev                       - prev           (intrusive linked list)                             - prev          |
-    | - next                       - next           (intrusive linked list)          |       |          - next          |
-    | - opcode           <-->      - opcode         (common part)              <---> | <---> | <--->    - opcode        |
-    | - type                       - type           (common part)                    |       |          - type          |
-    | - basic block                - basic block    (common part)                                       - basic block   |
-    | - inputs                     - inputs         (derived part)                                      - inputs        |
+    | Instruction 1                Instruction 2 Instruction n   | | - prev -
+   prev           (intrusive linked list)                             - prev |
+    | - next                       - next           (intrusive linked list) | |
+   - next          | | - opcode           <-->      - opcode         (common
+   part)              <---> | <---> | <--->    - opcode        | | - type - type
+   (common part)                    |       |          - type          | | -
+   basic block                - basic block    (common part) - basic block   |
+    | - inputs                     - inputs         (derived part) - inputs |
     ____________________________________________________________________________________________________________________|
 
 
@@ -18,29 +19,32 @@
     Type            - type of result of inst (s32, u64, ...)
     Opcode          - name of instruction
     Basic flags     - basic inst properties (throwable, no_dce, ...)
-    Special flags   - special properties for inst (conditional code, inlined, ...)
-    Inputs          - array of instructions, which need to execute the instruction
-    Users           - list of instructions, which have instuction as input
+    Special flags   - special properties for inst (conditional code, inlined,
+   ...) Inputs          - array of instructions, which need to execute the
+   instruction Users           - list of instructions, which have instuction as
+   input
 */
 
 #ifndef JIT_AOT_COURSE_IR_GEN_SINGLE_INSTRUCTION_H_
 #define JIT_AOT_COURSE_IR_GEN_SINGLE_INSTRUCTION_H_
 
+#include "domTree/arena.h"
+#include "input.h"
+#include "marker.h"
+#include "user.h"
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
-#include <vector>
 #include <limits>
 #include <type_traits>
-#include "input.h"
-#include "user.h"
-#include "domTree/arena.h"
+#include <vector>
 namespace ir {
 using memory::ArenaAllocator;
 using memory::ArenaVector;
 class BB;
 
+using FunctionID = size_t;
 enum class InstType { i8, i16, i32, i64, u8, u16, u32, u64, VOID, INVALID };
 
 constexpr inline int64_t ToSigned(uint64_t value, InstType type) {
@@ -55,24 +59,23 @@ constexpr inline int64_t ToSigned(uint64_t value, InstType type) {
         return static_cast<int64_t>(static_cast<int64_t>(value));
     default:
         return static_cast<int64_t>(value);
-  }
+    }
 }
 
-constexpr std::array<uint64_t, static_cast<size_t>(InstType::INVALID)> maxValues{
-    std::numeric_limits<int8_t>::max(),
-    std::numeric_limits<int16_t>::max(),
-    std::numeric_limits<int32_t>::max(),
-    std::numeric_limits<int64_t>::max(),
-    std::numeric_limits<uint8_t>::max(),
-    std::numeric_limits<uint16_t>::max(),
-    std::numeric_limits<uint32_t>::max(),
-    std::numeric_limits<uint64_t>::max(),
-};
-
+constexpr std::array<uint64_t, static_cast<size_t>(InstType::INVALID)>
+    maxValues{0,
+              std::numeric_limits<int8_t>::max(),
+              std::numeric_limits<int16_t>::max(),
+              std::numeric_limits<int32_t>::max(),
+              std::numeric_limits<int64_t>::max(),
+              std::numeric_limits<uint8_t>::max(),
+              std::numeric_limits<uint16_t>::max(),
+              std::numeric_limits<uint32_t>::max(),
+              std::numeric_limits<uint64_t>::max()};
 
 constexpr inline uint64_t GetMaxValue(InstType type) {
-  assert(type != InstType::INVALID);
-  return maxValues[static_cast<size_t>(type)];
+    assert(type != InstType::INVALID);
+    return maxValues[static_cast<size_t>(type)];
 }
 
 enum class Opcode {
@@ -86,19 +89,23 @@ enum class Opcode {
     ADD,
     CAST,
     CMP,
-    JA,
     JMP,
+    JCMP,
     RET,
+    RETVOID,
+    CALL,
     PHI,
     CONST,
     ARG,
+    LOAD,
+    STORE,
     INVALID
 };
 
 static constexpr std::array<const char *,
                             static_cast<size_t>(Opcode::INVALID) + 1>
-    nameOpcode{"MUL", "MULI", "SHR", "SHRI", "XOR", "XORI", "ADDI", "MOVI", "CAST",   "CMP",
-               "JA",  "JMP",  "RET",  "INVALID"};
+    nameOpcode{"MUL",  "MULI", "SHR", "SHRI", "XOR", "XORI", "ADDI",
+               "MOVI", "CAST", "CMP", "JA",   "JMP", "RET",  "INVALID"};
 
 // Instructions properties, used in optimizations
 using InstructionPropT = uint8_t;
@@ -109,13 +116,36 @@ enum class InstrProp : InstructionPropT {
     COMMUTABLE = 0b100,
     JUMP = 0b1000,
     INPUT = 0b10000,
+    SIDE_EFFECTS = 0b100000,
 };
 
+constexpr inline InstructionPropT operator|(InstrProp lhs, InstrProp rhs) {
+    return std::to_underlying(lhs) | std::to_underlying(rhs);
+}
+
+constexpr inline InstructionPropT operator|(InstructionPropT lhs, InstrProp rhs) {
+    return lhs | std::to_underlying(rhs);
+}
+
+constexpr inline InstructionPropT operator|(InstrProp lhs, InstructionPropT rhs) {
+    return std::to_underlying(lhs) | rhs;
+}
+
+template <typename T>
+constexpr inline InstructionPropT &operator|=(InstructionPropT &lhs, T rhs) {
+    lhs = lhs | rhs;
+    return lhs;
+}
+
 class ConstInstr;
-class SingleInstruction: public User {
+class InputsInstr;
+class SingleInstruction : public Markable, public User {
   public:
-    SingleInstruction(Opcode opcode, InstType type, ArenaAllocator *const allocator, size_t id = INVALID_ID, InstructionPropT prop = 0)
-        : User(allocator), opcode_(opcode), instType_(type), instID_(id), properties_(prop) {}
+    SingleInstruction(Opcode opcode, InstType type,
+                      ArenaAllocator *const allocator, size_t id = INVALID_ID,
+                      InstructionPropT prop = 0)
+        : User(allocator), opcode_(opcode), instType_(type), instID_(id),
+          properties_(prop) {}
     SingleInstruction(const SingleInstruction &) = delete;
     SingleInstruction &operator=(const SingleInstruction &) = delete;
     SingleInstruction(SingleInstruction &&) = delete;
@@ -141,29 +171,28 @@ class SingleInstruction: public User {
     Opcode GetOpcode() const { return opcode_; }
     const char *GetOpcodeName(Opcode opcode) const;
     auto GetType() { return instType_; }
-    InstructionPropT GetProperties() const {
-      return properties_;
-    }
+    InstructionPropT GetProperties() const { return properties_; }
     bool SatisfiesProperty(InstrProp prop) const {
         return GetProperties() & std::to_underlying(prop);
     }
-    bool IsInputArgument() const { return opcode_ == Opcode::ARG; }
-    bool IsPhi() const { return opcode_ == Opcode::PHI; }
+    bool IsInputArgument() const { return GetOpcode() == Opcode::ARG; }
+    bool IsPhi() const { return GetOpcode() == Opcode::PHI; }
     static constexpr size_t INVALID_ID = static_cast<size_t>(0) - 1;
-    bool IsConst() const {
-      return GetOpcode() == Opcode::CONST;
+    bool IsConst() const { return GetOpcode() == Opcode::CONST; }
+    bool IsCall() const { return GetOpcode() == Opcode::CALL; }
+    bool IsBranch() const {
+        return GetOpcode() == Opcode::JCMP;
     }
+    bool HasSideEffects() const {
+        return SatisfiesProperty(InstrProp::SIDE_EFFECTS);
+    }
+    bool HasInputs() const { return SatisfiesProperty(InstrProp::INPUT); }
 
-    bool HasInputs() const {
-      return SatisfiesProperty(InstrProp::INPUT);
+    template <typename T>
+    constexpr inline void SetProperty(T prop) {
+        properties_ |= prop;
     }
-
-    void SetProperty(InstrProp prop) {
-      properties_ |= std::to_underlying(prop);
-    }
-    void SetProperty(InstructionPropT prop) {
-      properties_ |= prop;
-    }
+    void SetProperty(InstructionPropT prop) { properties_ |= prop; }
 
     void ReplaceWith(SingleInstruction *new_inst) {
         if (prevInst_) {
@@ -173,15 +202,18 @@ class SingleInstruction: public User {
         if (nextInst_) {
             nextInst_->SetPrevInst(new_inst);
         }
-    
+
         new_inst->SetPrevInst(prevInst_);
         new_inst->SetNextInst(nextInst_);
-        
+
         new_inst->SetBB(instBB_);
 
         RemoveFromBlock();
     }
-    
+
+    void ReplaceInputInUsers(SingleInstruction *newInput);
+
+    virtual SingleInstruction *Copy(BB *targetBBlock) = 0;
 
   public:
     // setters

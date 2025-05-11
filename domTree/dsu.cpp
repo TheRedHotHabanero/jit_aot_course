@@ -56,7 +56,8 @@ void DSU::Dump() {
     std::cout << "--- DSU ---\n";
     for (size_t i = 0; i < GetSize(); ++i) {
         if (getParentLinks(i) != nullptr) {
-            std::cout << "= BB " << i << ": " << getParentLinks(i)->GetId() << std::endl;
+            std::cout << "= BB " << i << ": " << getParentLinks(i)->GetId()
+                      << std::endl;
         } else {
             std::cout << "= BB " << i << " is root\n";
         }

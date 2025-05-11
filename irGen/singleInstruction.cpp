@@ -48,7 +48,8 @@ const char *SingleInstruction::GetOpcodeName(Opcode opcode) const {
 
 void SingleInstruction::RemoveFromBlock() {
     if (instBB_ == nullptr) {
-        std::cout << "[SingleInstruction Error] Nullptr in BB containing current inst "
+        std::cout << "[SingleInstruction Error] Nullptr in BB containing "
+                     "current inst "
                      "(RemoveFromBlock)."
                   << std::endl;
         std::abort();
@@ -58,9 +59,9 @@ void SingleInstruction::RemoveFromBlock() {
 
 void SingleInstruction::InsertInstBefore(SingleInstruction *inst) {
     if (instBB_ == nullptr) {
-        std::cout
-            << "[SingleInstruction Error] Nullptr BB while trying inserting inst before."
-            << std::endl;
+        std::cout << "[SingleInstruction Error] Nullptr BB while trying "
+                     "inserting inst before."
+                  << std::endl;
         std::abort();
     }
     instBB_->InsertSingleInstrBefore(inst, this);
@@ -68,9 +69,9 @@ void SingleInstruction::InsertInstBefore(SingleInstruction *inst) {
 
 void SingleInstruction::InsertInstAfter(SingleInstruction *inst) {
     if (instBB_ == nullptr) {
-        std::cout
-            << "[SingleInstruction Error] Nullptr BB while trying inserting inst after."
-            << std::endl;
+        std::cout << "[SingleInstruction Error] Nullptr BB while trying "
+                     "inserting inst after."
+                  << std::endl;
         std::abort();
     }
     instBB_->InsertSingleInstrAfter(inst, this);
@@ -81,6 +82,15 @@ ConstInstr *SingleInstruction::CastToConstant() {
         std::cerr << "Non-const inst for CastToConstant!!" << std::endl;
     }
     return static_cast<ConstInstr *>(this);
+}
+class InputsInstr;
+void SingleInstruction::ReplaceInputInUsers(SingleInstruction *newInput) {
+    newInput->AddUsers(GetUsers());
+    for (auto &it : GetUsers()) {
+        // assert(it->HasInputs());
+        auto *typed = static_cast<InputsInstr *>(it);
+        typed->ReplaceInput(this, newInput);
+    }
 }
 
 void SingleInstruction::PrintSSA() {

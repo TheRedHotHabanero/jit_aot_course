@@ -2,23 +2,21 @@
 #define JIT_AOT_COURSE_USER_H_
 
 #include "domTree/arena.h"
-#include <span>
 #include <cassert>
-
+#include <span>
 
 namespace ir {
 class SingleInstruction;
 
 class User {
-public:
+  public:
     explicit User(memory::ArenaAllocator *const allocator)
-        : users_(allocator->ToSTL())
-    {
+        : users_(allocator->ToSTL()) {
         assert(allocator);
     }
-    User(std::span<SingleInstruction *> instrs, memory::ArenaAllocator *const allocator)
-        : users_(instrs.begin(), instrs.end(), allocator->ToSTL())
-    {
+    User(std::span<SingleInstruction *> instrs,
+         memory::ArenaAllocator *const allocator)
+        : users_(instrs.begin(), instrs.end(), allocator->ToSTL()) {
         assert(allocator);
     }
     User(const User &) = delete;
@@ -32,9 +30,7 @@ public:
     const memory::ArenaVector<SingleInstruction *> &GetUsers() const {
         return users_;
     }
-    std::span<SingleInstruction *> GetUsers() {
-        return std::span(users_);
-    }
+    std::span<SingleInstruction *> GetUsers() { return std::span(users_); }
 
     void AddUser(SingleInstruction *instr) {
         assert(instr);
@@ -60,13 +56,15 @@ public:
         *iter = newInstr;
     }
 
-    size_t UsersCount() const {
-        return users_.size();
+    size_t UsersCount() const { return users_.size(); }
+
+    void SetNewUsers(memory::ArenaVector<SingleInstruction *> &&newUsers) {
+        users_ = std::move(newUsers);
     }
 
-protected:
+  protected:
     memory::ArenaVector<SingleInstruction *> users_;
 };
-}   // namespace ir
+} // namespace ir
 
-#endif  // JIT_AOT_COURSE_USER_H_
+#endif // JIT_AOT_COURSE_USER_H_

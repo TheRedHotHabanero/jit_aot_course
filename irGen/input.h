@@ -5,7 +5,7 @@ namespace ir {
 
 class SingleInstruction;
 
-class Input  {
+class Input {
   public:
     Input() : instr_(nullptr) {}
     Input(SingleInstruction *instr) : instr_(instr) {}
@@ -21,6 +21,7 @@ class Input  {
     void SetInstruction(SingleInstruction *newInstr) { instr_ = newInstr; }
     SingleInstruction *operator->() { return instr_; }
     const SingleInstruction *operator->() const { return instr_; }
+
   private:
     SingleInstruction *instr_;
 };

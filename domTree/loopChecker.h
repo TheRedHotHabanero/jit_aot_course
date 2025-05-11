@@ -8,26 +8,28 @@ namespace ir {
 
 class LoopChecker {
   public:
-    void VerifyGraphLoops(Graph *graph);
+    void VerifyGraphLoops(Graph *targetGraph);
 
   private:
-    void InitializeLoopStructures(Graph *graph);
-    void IdentifyBackEdges(Graph *graph);
+    void InitializeLoopStructures(Graph *targetGraph);
+    void IdentifyBackEdges();
     void OrganizeLoops();
-    void ConstructLoopTree(Graph *graph);
+    void ConstructLoopTree();
     void DiscoverBackEdges(BB *bblock, ArenaAllocator *const allocator);
     void RecordLoopInfo(BB *header, BB *backEdgeSource,
-                     ArenaAllocator *const allocator);
+                        ArenaAllocator *const allocator);
     void ClassifyReducibleLoop(Loop *loop);
-    void CollectLoopDetails(Loop *loop, BB *bblock, DFSColors color);
+    void CollectLoopDetails(Loop *loop, BB *bblock);
 
     static bool IsLoopIrreducible(const BB *header, const BB *backEdgeSource) {
         return !header->Domites(backEdgeSource);
     }
 
   private:
-    uint32_t colorCounter_ = 0;
-    ArenaVector<DFSColors> *dfsColors_ = nullptr;
+    Graph *graph_ = nullptr;
+
+    Marker greyMarker_;
+    Marker blackMarker_;
     size_t blockId_ = 0;
     ArenaVector<BB *> *dfsBlocks_ = nullptr;
     ArenaVector<Loop *> *loops_ = nullptr;

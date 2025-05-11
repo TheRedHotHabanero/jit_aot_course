@@ -12,8 +12,6 @@ BB *IRGenerator::CreateEmptyBB() {
     return bb;
 }
 
-void IRGenerator::Clear() noexcept {
-    graph_ = nullptr;
-}
+void IRGenerator::Clear() noexcept { graph_ = nullptr; }
 
 } // namespace ir

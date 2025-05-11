@@ -1,18 +1,17 @@
-#include "testBase.h"
 #include "dfo_rpo.h"
+#include "testBase.h"
 #include <iostream>
 
 namespace ir::tests {
-class dfoRpoTest : public TestBase {
-};
-
+class dfoRpoTest : public TestBase {};
 
 TEST_F(dfoRpoTest, TestDFO) {
-    auto *blockA = GetIRGenerator().CreateEmptyBB();
-    auto *blockB = GetIRGenerator().CreateEmptyBB();
-    auto *blockC = GetIRGenerator().CreateEmptyBB();
-    auto *blockD = GetIRGenerator().CreateEmptyBB();
-    auto *graph = GetIRGenerator().GetGraph();
+    auto *graph = GetGraph();
+    auto *blockA = graph->CreateEmptyBB();
+    auto *blockB = graph->CreateEmptyBB();
+    auto *blockC = graph->CreateEmptyBB();
+    auto *blockD = graph->CreateEmptyBB();
+
     graph->SetFirstBB(blockA);
     graph->ConnectBBs(blockA, blockB);
     graph->ConnectBBs(blockA, blockC);
@@ -22,7 +21,7 @@ TEST_F(dfoRpoTest, TestDFO) {
     bblocks.reserve(4);
     // do depth-first order traversal
     auto dfo = DFO();
-    dfo.ValidateGraph(graph,
+    dfo.ValidateGraph(graph_,
                       [&bblocks](BB *bblock) { bblocks.push_back(bblock); });
     ASSERT_EQ(bblocks.size(), 4);
     ASSERT_EQ(bblocks[0], blockD);
@@ -33,11 +32,11 @@ TEST_F(dfoRpoTest, TestDFO) {
 
 TEST_F(dfoRpoTest, TestRPO) {
     // create graph
-    auto *blockA = GetIRGenerator().CreateEmptyBB();
-    auto *blockB = GetIRGenerator().CreateEmptyBB();
-    auto *blockC = GetIRGenerator().CreateEmptyBB();
-    auto *blockD = GetIRGenerator().CreateEmptyBB();
-    auto *graph = GetIRGenerator().GetGraph();
+    auto *graph = GetGraph();
+    auto *blockA = graph->CreateEmptyBB();
+    auto *blockB = graph->CreateEmptyBB();
+    auto *blockC = graph->CreateEmptyBB();
+    auto *blockD = graph->CreateEmptyBB();
     graph->SetFirstBB(blockA);
     graph->ConnectBBs(blockA, blockB);
     graph->ConnectBBs(blockA, blockC);
@@ -50,7 +49,6 @@ TEST_F(dfoRpoTest, TestRPO) {
     ASSERT_TRUE(bblocks[1] == blockB || bblocks[1] == blockC);
     ASSERT_TRUE(bblocks[2] == blockB || bblocks[2] == blockC);
     ASSERT_EQ(bblocks[3], blockD);
-    // change layout and do RPO once again
     graph->ConnectBBs(blockD, blockA);
     auto bblocks2 = RPO(graph);
     ASSERT_EQ(bblocks.size(), bblocks2.size());
@@ -58,4 +56,5 @@ TEST_F(dfoRpoTest, TestRPO) {
         ASSERT_EQ(bblocks[i], bblocks2[i]);
     }
 }
+
 } // namespace ir::tests

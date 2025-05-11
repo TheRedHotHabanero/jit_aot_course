@@ -1,8 +1,8 @@
-#include <limits>
-#include <cassert>
 #include "peepholes.h"
 #include "domTree/dfo_rpo.h"
 #include "irGen/helperBuilderFunctions.h"
+#include <cassert>
+#include <limits>
 
 namespace ir {
 
@@ -11,17 +11,17 @@ void Peepholes::Run() {
         for (auto *instr = bblock->GetFirstInstBB(); instr != nullptr;
              instr = instr->GetNextInst()) {
             switch (instr->GetOpcode()) {
-                case Opcode::MUL:
-                    VisitMul(instr);
-                    break;
-                case Opcode::SHR:
-                    VisitShr(instr);
-                    break;
-                case Opcode::XOR:
-                    VisitXor(instr);
-                    break;
-                default:
-                    break;
+            case Opcode::MUL:
+                VisitMul(instr);
+                break;
+            case Opcode::SHR:
+                VisitShr(instr);
+                break;
+            case Opcode::XOR:
+                VisitXor(instr);
+                break;
+            default:
+                break;
             }
         }
     }
@@ -57,7 +57,7 @@ void Peepholes::VisitShr(SingleInstruction *inst) {
 void Peepholes::VisitXor(SingleInstruction *inst) {
     assert(inst->GetOpcode() == Opcode::XOR);
     BinaryRegInstr *typed = static_cast<BinaryRegInstr *>(inst);
-    
+
     if (TryOptimizeXor(typed)) {
         return;
     }
@@ -67,7 +67,7 @@ void Peepholes::VisitXor(SingleInstruction *inst) {
 bool Peepholes::TryOptimizeMul(BinaryRegInstr *inst) {
     auto input1 = inst->GetInput(0);
     auto input2 = inst->GetInput(1);
-    
+
     // a * 1 => a
     if (input1->IsConst()) {
         auto *typed = static_cast<ConstInstr *>(input1.GetInstruction());
@@ -81,18 +81,19 @@ bool Peepholes::TryOptimizeMul(BinaryRegInstr *inst) {
         auto *typed = static_cast<ConstInstr *>(input2.GetInstruction());
         if (typed->GetValue() == 1) {
             ReplaceWithoutNewInstr(inst, input1.GetInstruction());
-            std::cout << "Applied MUL: 'v * 0' peephole"<< std::endl;
+            std::cout << "Applied MUL: 'v * 0' peephole" << std::endl;
             return true;
         }
     }
-    
+
     // a * 0 => 0
     if (input1->IsConst()) {
         // case: v1 = 0 * v1 -> v1 = 0
         auto *typed = static_cast<ConstInstr *>(input1.GetInstruction());
         if (typed->GetValue() == 0) {
             ReplaceWithoutNewInstr(inst, input1.GetInstruction());
-            std::cout << "Applied MUL: case: v1 = 0 * v1 -> v1 = 0 peephole" << std::endl;
+            std::cout << "Applied MUL: case: v1 = 0 * v1 -> v1 = 0 peephole"
+                      << std::endl;
         }
         return true;
     }
@@ -101,7 +102,8 @@ bool Peepholes::TryOptimizeMul(BinaryRegInstr *inst) {
         auto *typed = static_cast<ConstInstr *>(input2.GetInstruction());
         if (typed->GetValue() == 0) {
             ReplaceWithoutNewInstr(inst, input2.GetInstruction());
-            std::cout << "Applied MUL: case: v1 = v0 * 0 -> v1 = 0 peephole" << std::endl;
+            std::cout << "Applied MUL: case: v1 = v0 * 0 -> v1 = 0 peephole"
+                      << std::endl;
         }
         return true;
     }
@@ -134,9 +136,12 @@ bool Peepholes::TryOptimizeShr(BinaryRegInstr *inst) {
     if (input2->IsConst()) {
         auto *typed = static_cast<ConstInstr *>(input2.GetInstruction());
         if (typed->GetValue() >= 32) {
-            auto *constZero = graph_->GetInstructionBuilder()->BuildConst(inst->GetType(), 0);
+            auto *constZero =
+                graph_->GetInstructionBuilder()->BuildConst(inst->GetType(), 0);
             ReplaceWithoutNewInstr(inst, constZero);
-            std::cout << "Applied SHR: case: a >> n where n >= bit-width of a => 0 peephole" << std::endl;
+            std::cout << "Applied SHR: case: a >> n where n >= bit-width of a "
+                         "=> 0 peephole"
+                      << std::endl;
             return true;
         }
     }
@@ -169,9 +174,9 @@ bool Peepholes::TryOptimizeXor(BinaryRegInstr *inst) {
 }
 
 void Peepholes::ReplaceWithoutNewInstr(BinaryRegInstr *instr,
-    SingleInstruction *replacedInstr) {
+                                       SingleInstruction *replacedInstr) {
     assert(instr);
-    instr->GetInstBB()->ReplaceInDataFlow(instr, replacedInstr);
+    instr->ReplaceInputInUsers(replacedInstr);
     instr->GetInstBB()->SetInstructionAsDead(instr);
 
     // these instructions may be deleted later by DCE
@@ -179,4 +184,4 @@ void Peepholes::ReplaceWithoutNewInstr(BinaryRegInstr *instr,
     instr->GetInput(1)->RemoveUser(instr);
 }
 
-}  // namespace ir
+} // namespace ir
