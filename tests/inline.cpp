@@ -100,12 +100,12 @@ Graph *InliningTest::BuildSimpleCallee() {
     calleeGraph->SetFirstBB(bblock);
     auto *arg0 = instrBuilder->BuildArg(OPS_TYPE);
     auto *arg1 = instrBuilder->BuildArg(OPS_TYPE);
-    auto *sub = instrBuilder->BuildMul(OPS_TYPE, arg1, arg0);
-    auto *mul = instrBuilder->BuildMuli(OPS_TYPE, sub, 3);
-    auto *ret = instrBuilder->BuildRet(OPS_TYPE, mul);
+    auto *mul = instrBuilder->BuildMul(OPS_TYPE, arg1, arg0);
+    auto *muli = instrBuilder->BuildMuli(OPS_TYPE, mul, 3);
+    auto *ret = instrBuilder->BuildRet(OPS_TYPE, muli);
     instrBuilder->PushBackInst(bblock, arg0);
     instrBuilder->PushBackInst(bblock, arg1);
-    instrBuilder->PushBackInst(bblock, sub);
+    instrBuilder->PushBackInst(bblock, muli);
     instrBuilder->PushBackInst(bblock, mul);
     instrBuilder->PushBackInst(bblock, ret);
 
@@ -174,14 +174,13 @@ Graph *InliningTest::BuildVoidReturnCallee() {
     calleeGraph->SetFirstBB(bblock);
     auto *arg0 = instrBuilder->BuildArg(OPS_TYPE);
     auto *arg1 = instrBuilder->BuildArg(OPS_TYPE);
-    auto *sub = instrBuilder->BuildMul(OPS_TYPE, arg1, arg0);
-    // div for side-effects
-    auto *div = instrBuilder->BuildAdd(OPS_TYPE, sub, arg1);
+    auto *mul = instrBuilder->BuildMul(OPS_TYPE, arg1, arg0);
+    auto *add = instrBuilder->BuildAdd(OPS_TYPE, mul, arg1);
     auto *retVoid = instrBuilder->BuildRetVoid();
     instrBuilder->PushBackInst(bblock, arg0);
     instrBuilder->PushBackInst(bblock, arg1);
-    instrBuilder->PushBackInst(bblock, sub);
-    instrBuilder->PushBackInst(bblock, div);
+    instrBuilder->PushBackInst(bblock, mul);
+    instrBuilder->PushBackInst(bblock, add);
     instrBuilder->PushBackInst(bblock, retVoid);
 
     return calleeGraph;

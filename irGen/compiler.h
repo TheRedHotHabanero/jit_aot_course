@@ -19,9 +19,7 @@ class Compiler : public CompilerBase {
     }
     Graph *CreateNewGraph(InstructionBuilder *instrBuilder);
     Graph *CopyGraph(Graph *source, InstructionBuilder *instrBuilder) override;
-    Graph *Optimize(Graph *graph) override {
-        return graph;
-    }
+    Graph *Optimize(Graph *graph) override { return graph; }
     Graph *GetFunction(FunctionID functionId) override {
         if (functionId >= functionsGraphs_.size()) {
             return nullptr;

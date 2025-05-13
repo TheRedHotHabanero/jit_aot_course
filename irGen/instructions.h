@@ -73,7 +73,10 @@ template <int InputsNum> class ConstInputsInst : public InputsInstr {
         }
     }
 
-    size_t GetInputsCount() const override { return InputsNum; }
+    size_t GetInputsCount() const override {
+        return inputs_.size();
+        ;
+    }
 
     Input &GetInput(size_t idx) override { return inputs_.at(idx); }
     void SetInput(Input newInput, size_t idx) override {
@@ -111,7 +114,7 @@ template <> class ConstInputsInst<1> : public InputsInstr {
     size_t GetInputsCount() const override { return 1; }
 
     Input &GetInput() { return input_; }
-    Input &GetInput([[maybe_unused]]size_t idx) override { return input_; }
+    Input &GetInput([[maybe_unused]] size_t idx) override { return input_; }
     void SetInput(Input newInput, size_t idx) override {
         if (idx != 0) {
             std::cout << "[SingleInstruction Error] in SetInput" << std::endl;
@@ -224,6 +227,17 @@ class DestCondition {
   private:
     Conditions condition_;
 };
+
+class DestTypeId {
+  public:
+    explicit DestTypeId(TypeId type) : typeId_(type) {}
+
+    auto GetTypeId() const { return typeId_; }
+    void SetTypeId(TypeId newType) { typeId_ = newType; }
+
+  private:
+    uint64_t typeId_;
+};
 // ----------------------------------------------------------------------------------
 
 // Specific Instruction containers according to Opcode
@@ -292,7 +306,7 @@ class JumpInstr : public SingleInstruction {
   public:
     JumpInstr(Opcode opcode, ArenaAllocator *const allocator)
         : SingleInstruction(opcode, InstType::i64, allocator, INVALID_ID,
-                            std::to_underlying(InstrProp::JUMP)) {}
+                            static_cast<uint8_t>(InstrProp::JUMP)) {}
     JumpInstr *Copy(BB *targetBBlock) override;
     BB *GetDestination();
 };
@@ -301,7 +315,9 @@ class CondJumpInstr : public SingleInstruction {
   public:
     CondJumpInstr(ArenaAllocator *const allocator)
         : SingleInstruction(Opcode::JCMP, InstType::i64, allocator, INVALID_ID,
-                            std::to_underlying(InstrProp::JUMP) || std::to_underlying(InstrProp::SIDE_EFFECTS)) {}
+                            static_cast<uint8_t>(InstrProp::JUMP) ||
+                                static_cast<uint8_t>(InstrProp::SIDE_EFFECTS)) {
+    }
 
     BB *GetTrueDestination();
 
@@ -309,7 +325,7 @@ class CondJumpInstr : public SingleInstruction {
     CondJumpInstr *Copy(BB *targetBBlock) override;
 
   private:
-    template <int CmpRes> BB *getBranchDestinationImpl();
+    template <int CmpRes> BB *GetBranchDestinationImpl();
 };
 
 class RetInstr : public ConstInputsInst<1> {
@@ -323,7 +339,10 @@ class RetVoidInstr : public SingleInstruction {
   public:
     RetVoidInstr(ArenaAllocator *const allocator)
         : SingleInstruction(Opcode::RETVOID, InstType::VOID, allocator,
-                            INVALID_ID, std::to_underlying(InstrProp::JUMP) || std::to_underlying(InstrProp::SIDE_EFFECTS)) {}
+                            INVALID_ID,
+                            static_cast<uint8_t>(InstrProp::JUMP) ||
+                                static_cast<uint8_t>(InstrProp::SIDE_EFFECTS)) {
+    }
     RetVoidInstr *Copy(BB *targetBBlock) override;
 };
 
@@ -403,22 +422,114 @@ class CallInstr : public VarInputsInstr {
     bool isInlined_;
 };
 
-class LoadInstr : public SingleInstruction, public DestIsImm<uint64_t> {
+class LengthInstr : public UnaryRegInstr {
   public:
-    LoadInstr(InstType type, uint64_t addr, ArenaAllocator *const allocator)
-        : SingleInstruction(Opcode::LOAD, type, allocator), DestIsImm<uint64_t>(
-                                                                addr) {}
-    LoadInstr *Copy(BB *targetBBlock) override;
+    LengthInstr(Input array, ArenaAllocator *const allocator)
+        : UnaryRegInstr(Opcode::LEN, InstType::u64, array, allocator) {
+        assert(!array.GetInstruction() || array->GetType() == InstType::REF);
+    }
+
+    LengthInstr *Copy(BB *targetBBlock) override;
 };
 
-class StoreInstr : public ConstInputsInst<1>, public DestIsImm<uint64_t> {
+class NewArrayInstr : public ConstInputsInst<1>, public DestTypeId {
   public:
-    StoreInstr(Input storedValue, uint64_t addr,
-               ArenaAllocator *const allocator)
-        : ConstInputsInst<1>(Opcode::STORE, storedValue->GetType(), storedValue,
+    NewArrayInstr(Input length, TypeId typeId, ArenaAllocator *const allocator)
+        : ConstInputsInst<1>(Opcode::NEW_ARRAY, InstType::REF, length,
                              allocator),
-          DestIsImm<uint64_t>(addr) {}
-    StoreInstr *Copy(BB *targetBBlock) override;
+          DestTypeId(typeId) {
+        assert(!length.GetInstruction() || IsIntegerType(length->GetType()));
+    }
+
+    NewArrayInstr *Copy(BB *targetBBlock) override;
+};
+
+class NewArrayImmInstr : public SingleInstruction,
+                         public DestIsImm<uint64_t>,
+                         public DestTypeId {
+  public:
+    NewArrayImmInstr(uint64_t length, TypeId typeId,
+                     ArenaAllocator *const allocator)
+        : SingleInstruction(Opcode::NEW_ARRAY_IMM, InstType::REF, allocator),
+          DestIsImm<uint64_t>(length), DestTypeId(typeId) {
+        assert(length > 0);
+    }
+
+    NewArrayImmInstr *Copy(BB *targetBBlock) override;
+};
+
+class NewObjectInstr : public SingleInstruction, public DestTypeId {
+  public:
+    NewObjectInstr(TypeId typeId, ArenaAllocator *const allocator)
+        : SingleInstruction(Opcode::NEW_OBJECT, InstType::REF, allocator),
+          DestTypeId(typeId) {}
+
+    NewObjectInstr *Copy(BB *targetBBlock) override;
+};
+
+class LoadArrayInstr : public BinaryRegInstr {
+  public:
+    LoadArrayInstr(InstType type, Input array, Input idx,
+                   ArenaAllocator *const allocator)
+        : BinaryRegInstr(Opcode::LOAD_ARRAY, type, array, idx, allocator) {
+        assert(!array.GetInstruction() || array->GetType() == InstType::REF);
+        assert(!idx.GetInstruction() || IsIntegerType(idx->GetType()));
+    }
+
+    LoadArrayInstr *Copy(BB *targetBBlock) override;
+};
+
+class LoadImmInstr : public BinaryImmInstr {
+  public:
+    LoadImmInstr(Opcode opcode, InstType type, Input obj, uint64_t offset,
+                 ArenaAllocator *const allocator)
+        : BinaryImmInstr(opcode, type, obj, offset, allocator) {
+        assert(opcode == Opcode::LOAD_ARRAY_IMM ||
+               opcode == Opcode::LOAD_OBJECT);
+        assert(!obj.GetInstruction() || obj->GetType() == InstType::REF);
+    }
+
+    LoadImmInstr *Copy(BB *targetBBlock) override;
+};
+
+class StoreArrayInstr : public ConstInputsInst<3> {
+  public:
+    StoreArrayInstr(Input array, Input storedValue, Input idx,
+                    ArenaAllocator *const allocator)
+        : ConstInputsInst<3>(Opcode::STORE_ARRAY, InstType::VOID, allocator,
+                             array, storedValue, idx) {
+        assert(!array.GetInstruction() || array->GetType() == InstType::REF);
+        assert(!idx.GetInstruction() || IsIntegerType(idx->GetType()));
+    }
+
+    StoreArrayInstr *Copy(BB *targetBBlock) override;
+};
+
+class StoreImmInstr : public ConstInputsInst<2>, public DestIsImm<uint64_t> {
+  public:
+    StoreImmInstr(Opcode opcode, Input obj, Input storedValue, uint64_t offset,
+                  ArenaAllocator *const allocator)
+        : ConstInputsInst<2>(opcode, InstType::VOID, allocator, obj,
+                             storedValue),
+          DestIsImm<uint64_t>(offset) {
+        assert(opcode == Opcode::STORE_ARRAY_IMM ||
+               opcode == Opcode::STORE_OBJECT);
+        assert(!obj.GetInstruction() || obj->GetType() == InstType::REF);
+    }
+
+    StoreImmInstr *Copy(BB *targetBBlock) override;
+};
+
+class BoundsCheckInstr : public ConstInputsInst<2> {
+  public:
+    BoundsCheckInstr(Input arr, Input idx, ArenaAllocator *const allocator)
+        : ConstInputsInst<2>(Opcode::BOUNDS_CHECK, InstType::INVALID, allocator,
+                             arr, idx) {
+        assert(!arr.GetInstruction() || arr->GetType() == InstType::REF);
+        assert(!idx.GetInstruction() || IsIntegerType(idx->GetType()));
+    }
+
+    BoundsCheckInstr *Copy(BB *targetBBlock) override;
 };
 
 // ------------------------------------------------------------------------------------------

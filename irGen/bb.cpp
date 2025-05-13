@@ -5,8 +5,6 @@
 #include <vector>
 namespace ir {
 
-// const size_t BB::INVALID_BB_ID;
-
 void BB::AddSuccessors(BB *bb) {
     if (successors_.size() > 2) {
         std::cout << "[BB Error] More than 2 successors!" << std::endl;
@@ -155,7 +153,6 @@ void BB::InsertSingleInstrBefore(SingleInstruction *instToMove,
     if (tmpPrev) {
         tmpPrev->SetNextInst(currentInstr);
     }
-    // check branches
 
     if (!tmpPrev) {
         firstInstBB_ = currentInstr;
@@ -182,7 +179,6 @@ void BB::InsertSingleInstrAfter(SingleInstruction *instToInsert,
     auto *tmpNext = instToInsert->GetNextInst();
     instToInsert->SetNextInst(currentInstr);
     currentInstr->SetPrevInst(instToInsert);
-    // currentInstr->SetNextInst(lastInstBB_);
     currentInstr->SetNextInst(tmpNext);
     tmpNext->SetPrevInst(currentInstr);
 
@@ -251,6 +247,10 @@ bool BB::Domites(const BB *bblock) const {
         std::cout << "[BB Error] in Domites" << std::endl;
         std::abort();
     }
+
+    if (bblock == this) {
+        return true;
+    }
     auto *dom = bblock->GetDominator();
     while (dom != nullptr) {
         if (dom == this) {
@@ -291,14 +291,14 @@ BB *JumpInstr::GetDestination() {
 }
 
 BB *CondJumpInstr::GetTrueDestination() {
-    return getBranchDestinationImpl<0>();
+    return GetBranchDestinationImpl<0>();
 }
 
 BB *CondJumpInstr::GetFalseDestination() {
-    return getBranchDestinationImpl<1>();
+    return GetBranchDestinationImpl<1>();
 }
 
-template <int CmpRes> BB *CondJumpInstr::getBranchDestinationImpl() {
+template <int CmpRes> BB *CondJumpInstr::GetBranchDestinationImpl() {
     auto *bblock = GetInstBB();
     assert(bblock);
     auto successors = bblock->GetSuccessors();

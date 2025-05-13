@@ -141,35 +141,6 @@ template <typename GraphT> inline ArenaVector<BB *> RPO(Graph *graph) {
     return result; // Return the computed RPO
 }
 
-inline void DumpBB(BB *bblock) {
-    assert(bblock);
-    std::cout << "=== BB #" << bblock->GetId() << " (" << bblock->GetSize();
-    std::cout << " instructions)\npreds: < ";
-    for (const auto &pred : bblock->GetPredecessors()) {
-        std::cout << pred->GetId() << " ";
-    }
-    std::cout << ">\nsuccs: < ";
-    for (const auto &succ : bblock->GetSuccessors()) {
-        std::cout << succ->GetId() << " ";
-    }
-    std::cout << ">\n";
-}
-
-inline void DumpGraphRPO(Graph *graph) {
-    auto rpoBBlocks = RPO(graph);
-    std::cout << "======================================\n";
-    for (auto bblock : rpoBBlocks) {
-        DumpBB(bblock);
-    }
-    std::cout << "======================================" << std::endl;
-}
-
-inline void DumpGraphDFO(Graph *graph) {
-    std::cout << "======================================\n";
-    DFO::Run(graph, DumpBB);
-    std::cout << "======================================" << std::endl;
-}
-
 } // namespace ir
 
 #endif // JIT_AOT_COURSE_DOMTREE_DFO_RPO

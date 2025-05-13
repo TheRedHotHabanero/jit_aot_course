@@ -28,7 +28,6 @@ class DSU {
     void Unite(BB *target, BB *parent) {
         setParentLinks(target->GetId(), parent);
     }
-    void Dump();
 
     BB *getParentLinks(size_t id) { return parentLinks_.at(id); }
     void setParentLinks(size_t id, BB *bblock) { parentLinks_.at(id) = bblock; }

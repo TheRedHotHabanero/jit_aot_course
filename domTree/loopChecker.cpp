@@ -42,22 +42,6 @@ void LoopChecker::InitializeLoopStructures(Graph *targetGraph) {
 }
 
 void LoopChecker::IdentifyBackEdges() {
-    // if (!graph_) {
-    //     std::cerr << "[LoopChecker Error] Graph is null while identifying
-    //     back edges" << std::endl; std::abort();
-    // }
-    //
-    // for (BB *bblock : graph_->GetBBs()) {
-    //    auto &color = dfsColors_->at(bblock->GetId());
-    //    if (color == DFSColors::WHITE) {
-    //        DiscoverBackEdges(bblock, graph->GetAllocator());
-    //    }
-    //}
-    //
-    // if (blockId_ != graph_->GetBBCount()) {
-    //    std::cerr << "[LoopChecker Error] Block count mismatch" << std::endl;
-    //    std::abort();
-    //}
     assert(graph_);
     DiscoverBackEdges(graph_->GetFirstBB(), graph_->GetAllocator());
     assert(blockId_ == graph_->GetBBCount());

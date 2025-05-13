@@ -57,6 +57,35 @@ void SingleInstruction::RemoveFromBlock() {
     instBB_->SetInstructionAsDead(this);
 }
 
+bool SingleInstruction::Dominates(SingleInstruction *other) {
+    assert(other);
+    if (other == this) {
+        // instruction always dominates itself
+        return true;
+    }
+    auto *otherBlock = other->GetInstBB();
+    if (otherBlock == GetInstBB()) {
+        return IsEarlierInBasicBlock(other);
+    }
+    return GetInstBB()->Domites(otherBlock);
+}
+
+bool SingleInstruction::IsEarlierInBasicBlock(SingleInstruction *other) {
+    assert((other) && (GetInstBB()) && other->GetInstBB() == GetInstBB());
+    for (auto *instr : *GetInstBB()) {
+        if (instr == this) {
+            return true;
+        }
+        if (instr == other) {
+            return false;
+        }
+    }
+    std::cerr << "[SingleInstruction Error] Must have encountered either this "
+                 "or other instruction"
+              << std::endl;
+    return false;
+}
+
 void SingleInstruction::InsertInstBefore(SingleInstruction *inst) {
     if (instBB_ == nullptr) {
         std::cout << "[SingleInstruction Error] Nullptr BB while trying "
@@ -76,6 +105,7 @@ void SingleInstruction::InsertInstAfter(SingleInstruction *inst) {
     }
     instBB_->InsertSingleInstrAfter(inst, this);
 }
+
 class ConstInstr;
 ConstInstr *SingleInstruction::CastToConstant() {
     if (GetOpcode() != Opcode::CONST) {

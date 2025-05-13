@@ -2,6 +2,7 @@ set(SOURCES
    constFolding.cpp
    peepholes.cpp
    staticInline.cpp
+   checkElimination.cpp
 )
 
 add_library(optimizations STATIC ${SOURCES})
@@ -11,6 +12,7 @@ target_sources(optimizations PUBLIC
     peepholes.h
     staticInline.h
     pass.h
+    checkElimination.h
 )
 include_directories(${CMAKE_SOURCE_DIR}/irGen)
 include_directories(${CMAKE_SOURCE_DIR}/domTree)
