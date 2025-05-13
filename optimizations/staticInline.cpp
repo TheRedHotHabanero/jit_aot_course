@@ -49,7 +49,6 @@ Graph *StaticInline::PossibleToInlineFunction(CallInstr *call,
         return nullptr;
     }
     if (callee == graph_) {
-        std::cout << "Recursion call found, skipping" << std::endl;
         return nullptr;
     }
 
@@ -139,8 +138,6 @@ void StaticInline::RemoveVoidReturns(Graph *callee) {
     for (auto *bblock : callee->GetLastBB()->GetPredecessors()) {
         auto *lastInstr = bblock->GetLastInstBB();
         assert(lastInstr->GetOpcode() == Opcode::RETVOID);
-        // void returns can be simply removed as they don't participate in data
-        // flow
         bblock->SetInstructionAsDead(lastInstr);
     }
 }

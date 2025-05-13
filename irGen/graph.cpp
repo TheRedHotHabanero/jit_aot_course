@@ -84,9 +84,7 @@ void Graph::SetBBAsDeadImpl(BB *bblock) {
     ++deadInstrCounter_;
 }
 
-bool BB::IsFirstInGraph() {
-    return GetGraph()->GetFirstBB() == this;
-}
+bool BB::IsFirstInGraph() { return GetGraph()->GetFirstBB() == this; }
 
 bool BB::IsLastInGraph() { return GetGraph()->GetLastBB() == this; }
 
@@ -132,7 +130,6 @@ void Graph::PrintSSA() {
     }
 }
 
-// defined here after full declaration of Graph methods
 BB::BB(Graph *graph)
     : bbId_(INVALID_BB_ID), predecessors_(graph->GetAllocator()->ToSTL()),
       successors_(graph->GetAllocator()->ToSTL()), graph_(graph),

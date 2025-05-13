@@ -20,7 +20,7 @@ Graph *Compiler::CopyGraph(Graph *source, InstructionBuilder *instrBuilder) {
 }
 
 // defined here after full declaration of Compiler's methods
-void copyInstruction(
+void CopyInstruction(
     BB *targetBlock, SingleInstruction *orig,
     ArenaUnorderedMap<size_t, SingleInstruction *> *instrsTranslation) {
     assert((targetBlock) && (orig) && (instrsTranslation));
@@ -37,22 +37,14 @@ BB *BB::Copy(
     ArenaUnorderedMap<size_t, SingleInstruction *> *instrsTranslation) {
     assert(targetGraph);
     auto *result = targetGraph->CreateEmptyBB();
-    SingleInstruction *instr = GetFirstPhiBB();
-    if (!instr) {
-        instr = GetFirstInstBB();
-        if (!instr) {
-            return result;
-        }
-    }
-    for (auto *end = GetLastInstBB(); instr != end;
-         instr = instr->GetNextInst()) {
-        copyInstruction(result, instr, instrsTranslation);
-    }
-    // copy the last instruction
-    copyInstruction(result, instr, instrsTranslation);
 
-    assert(result->GetFirstInstBB());
-    assert(result->GetLastInstBB());
+    if (!IsEmpty()) {
+        for (auto *instr : *this) {
+            CopyInstruction(result, instr, instrsTranslation);
+        }
+        assert(result->GetFirstInstBB());
+        assert(result->GetLastInstBB());
+    }
     return result;
 }
 
@@ -65,7 +57,6 @@ std::pair<BB *, BB *> BB::SplitAfterInstruction(SingleInstruction *instr,
     auto *graph = GetGraph();
     auto *newBBlock = graph->CreateEmptyBB();
 
-    // might leave unconnected, e.g. for further usage in inlining
     if (connectAfterSplit) {
         graph->ConnectBBs(this, newBBlock);
     }
@@ -93,7 +84,6 @@ std::pair<BB *, BB *> BB::SplitAfterInstruction(SingleInstruction *instr,
         newBBlock->firstPhiBB_ = static_cast<PhiInstr *>(nextInstr);
         newBBlock->lastPhiBB_ = lastPhiBB_;
         lastPhiBB_ = static_cast<PhiInstr *>(instr);
-        // can be done unconditionally
         newBBlock->firstInstBB_ = firstInstBB_;
         newBBlock->lastInstBB_ = lastInstBB_;
         firstInstBB_ = nullptr;

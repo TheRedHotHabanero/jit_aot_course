@@ -19,9 +19,9 @@ class GraphCopyHelper final {
     Graph *CreateCopy(Graph *copyTarget);
 
   private:
-    void reset(Graph *copyTarget);
+    void Reset(Graph *copyTarget);
     void DfoCopy(BB *currentBBlock);
-    void fixDFG();
+    void FixDFG();
 
   private:
     Graph *source_;

@@ -45,7 +45,19 @@ using memory::ArenaVector;
 class BB;
 
 using FunctionID = size_t;
-enum class InstType { i8, i16, i32, i64, u8, u16, u32, u64, VOID, INVALID };
+enum class InstType {
+    i8,
+    i16,
+    i32,
+    i64,
+    u8,
+    u16,
+    u32,
+    u64,
+    VOID,
+    REF,
+    INVALID
+};
 
 constexpr inline int64_t ToSigned(uint64_t value, InstType type) {
     switch (type) {
@@ -78,6 +90,27 @@ constexpr inline uint64_t GetMaxValue(InstType type) {
     return maxValues[static_cast<size_t>(type)];
 }
 
+constexpr inline bool IsIntegerType(InstType type) {
+    auto t = static_cast<uint8_t>(type);
+    return static_cast<uint8_t>(InstType::i8) <= t &&
+           t <= static_cast<uint8_t>(InstType::u64);
+}
+
+class TypeId {
+  public:
+    TypeId(uint64_t id) : id(id) {}
+    TypeId(const TypeId &) = default;
+    TypeId &operator=(const TypeId &) = default;
+    TypeId(TypeId &&) = default;
+    TypeId &operator=(TypeId &&) = default;
+    virtual ~TypeId() noexcept = default;
+
+    operator uint64_t() const { return id; }
+
+  private:
+    uint64_t id;
+};
+
 enum class Opcode {
     MUL,
     MULI,
@@ -99,6 +132,18 @@ enum class Opcode {
     ARG,
     LOAD,
     STORE,
+    LEN,
+    NEW_ARRAY,
+    NEW_ARRAY_IMM,
+    NEW_OBJECT,
+    LOAD_ARRAY,
+    LOAD_ARRAY_IMM,
+    LOAD_OBJECT,
+    STORE_ARRAY,
+    STORE_ARRAY_IMM,
+    STORE_OBJECT,
+    BOUNDS_CHECK,
+    NULL_CHECK,
     INVALID
 };
 
@@ -108,9 +153,7 @@ static constexpr std::array<const char *,
                "MOVI", "CAST", "CMP", "JA",   "JMP", "RET",  "INVALID"};
 
 // Instructions properties, used in optimizations
-using InstructionPropT = uint8_t;
-
-enum class InstrProp : InstructionPropT {
+enum class InstrProp : uint8_t {
     ARITH = 0b1,
     MEM = 0b10,
     COMMUTABLE = 0b100,
@@ -119,20 +162,20 @@ enum class InstrProp : InstructionPropT {
     SIDE_EFFECTS = 0b100000,
 };
 
-constexpr inline InstructionPropT operator|(InstrProp lhs, InstrProp rhs) {
-    return std::to_underlying(lhs) | std::to_underlying(rhs);
+constexpr inline uint8_t operator|(InstrProp lhs, InstrProp rhs) {
+    return static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs);
 }
 
-constexpr inline InstructionPropT operator|(InstructionPropT lhs, InstrProp rhs) {
-    return lhs | std::to_underlying(rhs);
+constexpr inline uint8_t operator|(uint8_t lhs, InstrProp rhs) {
+    return lhs | static_cast<uint8_t>(rhs);
 }
 
-constexpr inline InstructionPropT operator|(InstrProp lhs, InstructionPropT rhs) {
-    return std::to_underlying(lhs) | rhs;
+constexpr inline uint8_t operator|(InstrProp lhs, uint8_t rhs) {
+    return static_cast<uint8_t>(lhs) | rhs;
 }
 
 template <typename T>
-constexpr inline InstructionPropT &operator|=(InstructionPropT &lhs, T rhs) {
+constexpr inline uint8_t &operator|=(uint8_t &lhs, T rhs) {
     lhs = lhs | rhs;
     return lhs;
 }
@@ -143,7 +186,7 @@ class SingleInstruction : public Markable, public User {
   public:
     SingleInstruction(Opcode opcode, InstType type,
                       ArenaAllocator *const allocator, size_t id = INVALID_ID,
-                      InstructionPropT prop = 0)
+                      uint8_t prop = 0)
         : User(allocator), opcode_(opcode), instType_(type), instID_(id),
           properties_(prop) {}
     SingleInstruction(const SingleInstruction &) = delete;
@@ -159,7 +202,7 @@ class SingleInstruction : public Markable, public User {
     BB *instBB_ = nullptr;
     InstType instType_;
     size_t instID_;
-    InstructionPropT properties_ = 0;
+    uint8_t properties_ = 0;
 
   public:
     // getters
@@ -171,28 +214,25 @@ class SingleInstruction : public Markable, public User {
     Opcode GetOpcode() const { return opcode_; }
     const char *GetOpcodeName(Opcode opcode) const;
     auto GetType() { return instType_; }
-    InstructionPropT GetProperties() const { return properties_; }
+    uint8_t GetProperties() const { return properties_; }
     bool SatisfiesProperty(InstrProp prop) const {
-        return GetProperties() & std::to_underlying(prop);
+        return GetProperties() & static_cast<uint8_t>(prop);
     }
     bool IsInputArgument() const { return GetOpcode() == Opcode::ARG; }
     bool IsPhi() const { return GetOpcode() == Opcode::PHI; }
     static constexpr size_t INVALID_ID = static_cast<size_t>(0) - 1;
     bool IsConst() const { return GetOpcode() == Opcode::CONST; }
     bool IsCall() const { return GetOpcode() == Opcode::CALL; }
-    bool IsBranch() const {
-        return GetOpcode() == Opcode::JCMP;
-    }
+    bool IsBranch() const { return GetOpcode() == Opcode::JCMP; }
     bool HasSideEffects() const {
         return SatisfiesProperty(InstrProp::SIDE_EFFECTS);
     }
     bool HasInputs() const { return SatisfiesProperty(InstrProp::INPUT); }
 
-    template <typename T>
-    constexpr inline void SetProperty(T prop) {
+    template <typename T> constexpr inline void SetProperty(T prop) {
         properties_ |= prop;
     }
-    void SetProperty(InstructionPropT prop) { properties_ |= prop; }
+    void SetProperty(uint8_t prop) { properties_ |= prop; }
 
     void ReplaceWith(SingleInstruction *new_inst) {
         if (prevInst_) {
@@ -217,6 +257,7 @@ class SingleInstruction : public Markable, public User {
 
   public:
     // setters
+    bool Dominates(SingleInstruction *other);
     void SetInstId(size_t newID) { instID_ = newID; }
     void SetPrevInst(SingleInstruction *inst) { prevInst_ = inst; }
     void SetNextInst(SingleInstruction *inst) { nextInst_ = inst; }
@@ -226,6 +267,7 @@ class SingleInstruction : public Markable, public User {
     void InsertInstAfter(SingleInstruction *inst);
     void SetRegType(InstType type) { instType_ = type; }
     void PrintSSA();
+    bool IsEarlierInBasicBlock(SingleInstruction *other);
 };
 
 } // namespace ir

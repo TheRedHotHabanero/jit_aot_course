@@ -25,7 +25,6 @@ void DomTreeBuilder::Construct(Graph *graph) {
     // Calculate immediate dominators
     DeriveImmediateDominators();
 }
-// static constexpr size_t INVALID_BB_ID = static_cast<size_t>(-1);
 
 DSU DomTreeBuilder::InitializeStructures(Graph *graph) {
     lastVisited_ = -1;

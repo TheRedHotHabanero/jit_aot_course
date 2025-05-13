@@ -55,9 +55,7 @@ class BB : public Markable {
     bool IsEmpty() const { return GetSize() == 0; }
     bool IsFirstInGraph();
     bool IsLastInGraph();
-    bool HasNoSuccessors() const {
-      return successors_.empty();
-    }
+    bool HasNoSuccessors() const { return successors_.empty(); }
     bool HasNoPredecessors() const { return predecessors_.empty(); }
     PhiInstr *GetFirstPhiBB() { return firstPhiBB_; }
     memory::ArenaVector<BB *> &GetPredecessors() { return predecessors_; }
@@ -103,6 +101,53 @@ class BB : public Markable {
     BB *Copy(Graph *targetGraph,
              memory::ArenaUnorderedMap<size_t, SingleInstruction *>
                  *instrsTranslation_);
+
+    template <typename T> class PhiIteration {
+      public:
+        PhiIteration(T &bblock) : bblock(bblock) {}
+
+        auto begin() {
+            return Iterator<decltype(bblock.GetFirstPhiInstruction()), true>{
+                bblock.GetFirstPhiInstruction()};
+        }
+        auto begin() const {
+            return Iterator<decltype(bblock.GetFirstPhiInstruction()), true>{
+                bblock.GetFirstPhiInstruction()};
+        }
+        auto end() {
+            return Iterator<decltype(bblock.GetLastPhiInstruction()), true>{
+                nullptr};
+        }
+        auto end() const {
+            return Iterator<decltype(bblock.GetLastPhiInstruction()), true>{
+                nullptr};
+        }
+
+      private:
+        T &bblock;
+    };
+
+    auto IteratePhi() & { return PhiIteration(*this); }
+
+    template <typename T> class NonPhiIteration {
+      public:
+        NonPhiIteration(T &bblock) : bblock(bblock) {}
+
+        auto begin() { return Iterator{bblock.GetFirstInstBB()}; }
+        auto begin() const { return Iterator{bblock.GetFirstInstBB()}; }
+        auto end() {
+            return Iterator<decltype(bblock.GetLastInstBB())>{nullptr};
+        }
+        auto end() const {
+            return Iterator<decltype(bblock.GetLastInstBB())>{nullptr};
+        }
+
+      private:
+        T &bblock;
+    };
+
+    auto IterateNonPhi() & { return NonPhiIteration(*this); }
+
     template <bool PushBack> void PushInstruction(SingleInstruction *instr);
     void PushInstForward(SingleInstruction *instr);
     void PushInstBackward(SingleInstruction *instr);
@@ -118,7 +163,7 @@ class BB : public Markable {
 
   public:
     // STL compatible iterator
-    template <typename T> class Iterator {
+    template <typename T, bool OnlyPhi = false> class Iterator {
       public:
         using iterator_category = std::forward_iterator_tag;
         using value_type = T;

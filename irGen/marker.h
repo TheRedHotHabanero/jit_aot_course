@@ -30,11 +30,12 @@ class MarkerManager {
     virtual ~MarkerManager() = default;
 
     Marker GetNewMarker() {
-        assert(currentIndex < std::to_underlying(MarkersConstants::MAX_VALUE));
+        assert(currentIndex <
+               static_cast<uint8_t>(MarkersConstants::MAX_VALUE));
         ++currentIndex;
         for (uint32_t i = 0; i < markersSlots.size(); ++i) {
             if (!markersSlots[i]) {
-                Marker mark = (currentIndex << std::to_underlying(
+                Marker mark = (currentIndex << static_cast<uint8_t>(
                                    MarkersConstants::BIT_LENGTH)) |
                               i;
                 markersSlots[i] = true;
@@ -45,14 +46,15 @@ class MarkerManager {
         return 0;
     }
     void ReleaseMarker(Marker mark) {
-        size_t index = mark & std::to_underlying(MarkersConstants::INDEX_MASK);
+        size_t index =
+            mark & static_cast<uint8_t>(MarkersConstants::INDEX_MASK);
         markersSlots[index] = false;
     }
 
   private:
     size_t currentIndex = 0;
-    std::bitset<std::to_underlying(MarkersConstants::MAX_MARKERS)> markersSlots{
-        false};
+    std::bitset<static_cast<uint8_t>(MarkersConstants::MAX_MARKERS)>
+        markersSlots{false};
 };
 
 class Markable {
@@ -65,24 +67,27 @@ class Markable {
     virtual ~Markable() noexcept = default;
 
     bool SetMarker(Marker mark) {
-        auto value = mark >> std::to_underlying(MarkersConstants::BIT_LENGTH);
-        size_t index = mark & std::to_underlying(MarkersConstants::INDEX_MASK);
+        auto value = mark >> static_cast<uint8_t>(MarkersConstants::BIT_LENGTH);
+        size_t index =
+            mark & static_cast<uint8_t>(MarkersConstants::INDEX_MASK);
         bool wasSet = markers.at(index) != value;
         markers.at(index) = value;
         return wasSet;
     }
     bool IsMarkerSet(Marker mark) const {
-        auto value = mark >> std::to_underlying(MarkersConstants::BIT_LENGTH);
-        size_t index = mark & std::to_underlying(MarkersConstants::INDEX_MASK);
+        auto value = mark >> static_cast<uint8_t>(MarkersConstants::BIT_LENGTH);
+        size_t index =
+            mark & static_cast<uint8_t>(MarkersConstants::INDEX_MASK);
         return markers.at(index) == value;
     }
     void ClearMarker(Marker mark) {
-        size_t index = mark & std::to_underlying(MarkersConstants::INDEX_MASK);
-        markers.at(index) = std::to_underlying(MarkersConstants::UNDEF_VALUE);
+        size_t index =
+            mark & static_cast<uint8_t>(MarkersConstants::INDEX_MASK);
+        markers.at(index) = static_cast<uint8_t>(MarkersConstants::UNDEF_VALUE);
     }
 
   private:
-    std::array<Marker, std::to_underlying(MarkersConstants::MAX_MARKERS)>
+    std::array<Marker, static_cast<uint8_t>(MarkersConstants::MAX_MARKERS)>
         markers;
 };
 } // namespace ir

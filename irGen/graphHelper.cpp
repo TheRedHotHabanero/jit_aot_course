@@ -4,14 +4,14 @@
 namespace ir {
 Graph *GraphCopyHelper::CreateCopy(Graph *copyTarget) {
     assert((copyTarget) && copyTarget->IsEmpty());
-    reset(copyTarget);
+    Reset(copyTarget);
     DfoCopy(source_->GetFirstBB());
     assert(target_->GetBBCount() == source_->GetBBCount());
-    fixDFG();
+    FixDFG();
     return target_;
 }
 
-void GraphCopyHelper::reset(Graph *copyTarget) {
+void GraphCopyHelper::Reset(Graph *copyTarget) {
     assert(copyTarget);
     target_ = copyTarget;
     auto *allocator = copyTarget->GetAllocator();
@@ -42,7 +42,7 @@ void GraphCopyHelper::DfoCopy(BB *currentBBlock) {
     }
 }
 
-void GraphCopyHelper::fixDFG() {
+void GraphCopyHelper::FixDFG() {
     assert(target_->CountInstructions() == instrsTranslation_->size());
     auto *translation = instrsTranslation_;
 

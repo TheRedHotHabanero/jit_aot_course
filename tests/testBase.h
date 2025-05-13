@@ -24,8 +24,10 @@ class TestBase : public ::testing::Test {
         return targetGraph->GetInstructionBuilder();
     }
 
-    static void CompareInstructions(std::vector<SingleInstruction *> expected,
-                                    BB *bblock) {
+    template <typename AllocatorT = std::allocator<SingleInstruction *>>
+    static void
+    CompareInstructions(std::vector<SingleInstruction *, AllocatorT> expected,
+                        BB *bblock) {
         ASSERT_EQ(bblock->GetSize(), expected.size());
         size_t i = 0;
         for (auto *instr : *bblock) {
